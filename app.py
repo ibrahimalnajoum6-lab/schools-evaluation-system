@@ -99,7 +99,7 @@ def delete_evaluation_by_id(eval_id):
     threading.Thread(target=auto_backup_database_to_drive).start()
 
 # -------------------------------------------------------------
-# إعداد الصفحة وتصاميم الـ CSS وإخفاء الشارة بالكامل عبر JavaScript
+# إعداد الصفحة وتصاميم الـ CSS وإخفاء الشارة والروابط عبر JavaScript
 # -------------------------------------------------------------
 st.set_page_config(
     page_title="منظومة تقييم المدارس الشرعية",
@@ -126,15 +126,20 @@ st.markdown("""
     }
     
     #MainMenu, footer, header {visibility: hidden !important; display: none !important;}
+    
+    /* إخفاء شارة ورابط المستودع وواجهات التطبيق العائمة أسفل الشاشة */
     div[class*="viewerBadge"], 
     [data-testid="stStatusWidget"],
     .viewerBadge_container__1QSob,
-    a[href*="streamlit.io"] {
+    a[href*="streamlit.io"],
+    a[href*="github.com"],
+    .styles_viewerBadge__1yG6_ {
         display: none !important;
         visibility: hidden !important;
         opacity: 0 !important;
         pointer-events: none !important;
         height: 0px !important;
+        width: 0px !important;
     }
     
     .block-container {
@@ -237,37 +242,23 @@ st.markdown("""
 </style>
 
 <script>
-    function removeStreamlitBranding() {
-        const selectors = [
-            '[data-testid="stStatusWidget"]',
-            'div[class*="viewerBadge"]',
-            'a[href*="streamlit.io"]',
-            'header',
-            'footer',
-            '#MainMenu',
-            '.stDeployButton',
-            'div[class*="profileContainer"]',
-            'div[class*="styles_viewerBadge"]'
-        ];
-        
-        selectors.forEach(selector => {
-            document.querySelectorAll(selector).forEach(el => el.remove());
-        });
-
-        const allElements = document.querySelectorAll('div, button, a, span');
+    function removeBrandingAndLinks() {
+        // إزالة أي عناصر تحتوي على شارات أو روابط جيثب أو ستريمليت
+        const allElements = document.querySelectorAll('a, div');
         allElements.forEach(el => {
-            const text = el.innerText || "";
-            if (text.includes("Streamlit") || text.includes("Deploy") || text.includes("Host") || text.includes("Manage app") || text.includes("Hosted with")) {
-                if (el.childElementCount === 0 || el.getAttribute('kind') === 'header' || el.tagName === 'A') {
-                    el.style.display = 'none';
-                    el.remove();
-                }
+            if (el.innerText && (
+                el.innerText.includes('Created by') || 
+                el.innerText.includes('Made with Streamlit') ||
+                (el.href && el.href.includes('github.com'))
+            )) {
+                el.style.display = 'none';
+                el.remove();
             }
         });
+        const badges = document.querySelectorAll('div[class*="viewerBadge"], a[href*="streamlit.io"]');
+        badges.forEach(b => b.remove());
     }
-
-    window.addEventListener('DOMContentLoaded', removeStreamlitBranding);
-    setInterval(removeStreamlitBranding, 100);
+    setInterval(removeBrandingAndLinks, 300);
 </script>
 """, unsafe_allow_html=True)
 
