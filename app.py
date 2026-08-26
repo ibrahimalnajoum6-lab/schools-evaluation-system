@@ -207,7 +207,6 @@ st.markdown("""
         box-shadow: 0 2px 8px rgba(0,0,0,0.03);
     }
     
-    /* توحيد تصميم جميع أزرار التطبيق لتطابق زر الخروج */
     .stButton > button {
         border-radius: 12px !important;
         font-weight: 700 !important;
@@ -226,11 +225,6 @@ st.markdown("""
         border-color: #94a3b8 !important;
         color: #0d5c3a !important;
     }
-
-    /* تخصيص الأزرار الرئيسية البارزة */
-    .stButton > button[kind="primary"], .stButton > button[data-baseweb="button"] {
-        /* سيتم تطبيق التنسيق العام الموحد لجميع الأزرار لتأخذ نفس مظهر زر الخروج بناءً على طلبك */
-    }
     
     input, select, textarea {
         font-size: 16px !important;
@@ -243,17 +237,37 @@ st.markdown("""
 </style>
 
 <script>
-    function removeBranding() {
-        const elements = document.querySelectorAll('*');
-        elements.forEach(el => {
-            if (el.innerText && (el.innerText.includes('Created by') || el.innerText.includes('Made with Streamlit'))) {
-                el.style.display = 'none';
+    function removeStreamlitBranding() {
+        const selectors = [
+            '[data-testid="stStatusWidget"]',
+            'div[class*="viewerBadge"]',
+            'a[href*="streamlit.io"]',
+            'header',
+            'footer',
+            '#MainMenu',
+            '.stDeployButton',
+            'div[class*="profileContainer"]',
+            'div[class*="styles_viewerBadge"]'
+        ];
+        
+        selectors.forEach(selector => {
+            document.querySelectorAll(selector).forEach(el => el.remove());
+        });
+
+        const allElements = document.querySelectorAll('div, button, a, span');
+        allElements.forEach(el => {
+            const text = el.innerText || "";
+            if (text.includes("Streamlit") || text.includes("Deploy") || text.includes("Host") || text.includes("Manage app") || text.includes("Hosted with")) {
+                if (el.childElementCount === 0 || el.getAttribute('kind') === 'header' || el.tagName === 'A') {
+                    el.style.display = 'none';
+                    el.remove();
+                }
             }
         });
-        const badges = document.querySelectorAll('div[class*="viewerBadge"], a[href*="streamlit.io"]');
-        badges.forEach(b => b.remove());
     }
-    setInterval(removeBranding, 500);
+
+    window.addEventListener('DOMContentLoaded', removeStreamlitBranding);
+    setInterval(removeStreamlitBranding, 100);
 </script>
 """, unsafe_allow_html=True)
 
