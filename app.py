@@ -36,7 +36,7 @@ def upload_file_to_drive(file_bytes, filename, school_name, visit_date_obj, mime
             "monthYear": month_folder_name
         }
         
-        response = requests.post(APPS_SCRIPT_URL, json=payload, timeout=20)
+        response = requests.post(APPS_SCRIPT_URL, json=payload, timeout=30)
         res_data = response.json()
         
         if res_data.get("status") == "success":
@@ -100,7 +100,7 @@ def delete_evaluation_by_id(eval_id):
     threading.Thread(target=auto_backup_database_to_drive).start()
 
 # -------------------------------------------------------------
-# إعداد الصفحة وتصميم التبويبات الجمالية
+# إعداد الصفحة وتصاميم الـ CSS (مع إخفاء شارة Streamlit تماماً)
 # -------------------------------------------------------------
 st.set_page_config(
     page_title="منظومة تقييم المدارس الشرعية",
@@ -124,6 +124,16 @@ st.markdown("""
     
     [data-testid="stSidebar"], [data-testid="stSidebarCollapseButton"], [data-testid="collapsedControl"], header[data-testid="stHeader"] {
         display: none !important;
+    }
+    
+    /* إخفاء شارة Streamlit والزر الأحمر السفلي نهائياً */
+    #MainMenu {visibility: hidden !important;}
+    footer {visibility: hidden !important;}
+    div[class*="viewerBadge"], 
+    [data-testid="stStatusWidget"],
+    .viewerBadge_container__1QSob {
+        display: none !important;
+        visibility: hidden !important;
     }
     
     .block-container {
@@ -672,13 +682,12 @@ def generate_annual_executive_report(evals_df, schools_df, users_df):
         visited_schools = len(evals_df['school_name'].unique()) if not evals_df.empty else 0
         coverage_pct = (visited_schools / total_schools * 100) if total_schools > 0 else 0
         
-        rating_counts = evals_df['rating'].value_counts() if not evals_df.empty else pd.Series()
+        rating_counts = eval_data_rating = evals_df['rating'].value_counts() if not evals_df.empty else pd.Series()
         ratings_data = []
         for r in ["ممتاز", "جيد جداً", "جيد", "مقبول", "ضعيف"]:
             cnt = rating_counts.get(r, 0)
             pct = (cnt / len(evals_df) * 100) if len(evals_df) > 0 else 0
-            r_data_item = {"التقدير": r, "العدد": cnt, "النسبة المئوية": f"{pct:.1f}%"}
-            ratings_data.append(r_data_item)
+            ratings_data.append({"التقدير": r, "العدد": cnt, "النسبة المئوية": f"{pct:.1f}%"})
             
         summary_kpi_df = pd.DataFrame([
             {"المؤشر": "إجمالي عدد المدارس الشرعية", "القيمة": total_schools},
@@ -730,16 +739,23 @@ def login(username, password):
     return user
 
 if st.session_state.user is None:
-    st.markdown("<div style='text-align: center; margin-top: 25px;'>", unsafe_allow_html=True)
-    st.markdown("<h2 style='font-size: 26px;'>🕌 منظومة التقييم الشرعي</h2>", unsafe_allow_html=True)
-    st.markdown("<p style='font-size: 16px; color: #64748b;'>تسجيل دخول الموجهين والمشرفين</p>", unsafe_allow_html=True)
-    st.markdown("</div>", unsafe_allow_html=True)
+    # تنسيق شاشة تسجيل الدخول في المنتصف بحجم متناسق وأنيق
+    st.markdown("<div style='height: 40px;'></div>", unsafe_allow_html=True)
+    col_l, col_center, col_r = st.columns([1, 2, 1])
     
-    with st.container():
+    with col_center:
+        st.markdown("""
+        <div style='text-align: center; margin-bottom: 20px;'>
+            <h2 style='font-size: 28px; font-weight: 800; color: #0d5c3a; margin-bottom: 4px;'>🕌 منظومة التقييم الشرعي</h2>
+            <p style='font-size: 15px; color: #64748b;'>تسجيل دخول الموجهين والمشرفين</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
         st.markdown("<div class='mobile-card'>", unsafe_allow_html=True)
         u_name = st.text_input("اسم المستخدم", placeholder="اسم المستخدم...")
         u_pass = st.text_input("كلمة المرور", type="password", placeholder="••••••")
         
+        st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
         if st.button("🔑 تسجيل الدخول", type="primary", use_container_width=True):
             user_data = login(u_name, u_pass)
             if user_data:
@@ -751,6 +767,7 @@ if st.session_state.user is None:
             else:
                 st.error("اسم المستخدم أو كلمة المرور غير صحيحة")
         st.markdown("</div>", unsafe_allow_html=True)
+        
     st.stop()
 
 # -------------------------------------------------------------
@@ -940,7 +957,7 @@ elif choice == "📑 التقرير التركيبي السنوي" and st.sessio
         )
 
 # -------------------------------------------------------------
-# 2. شاشة استمارة تقييم جديدة (الحفظ الفوري + الرفع الخلفي)
+# 2. شاشة استمارة تقييم جديدة
 # -------------------------------------------------------------
 elif choice == "📝 استمارة تقييم جديدة":
     
@@ -1068,7 +1085,6 @@ elif choice == "📝 استمارة تقييم جديدة":
             else:
                 final_scores_dict = {str(item['id']): st.session_state[f"q_val_{item['id']}"] for item in CRITERIA}
                 
-                # حفظ الملفات محلياً للرفع الخلفي
                 saved_media = []
                 uploaded_files_data = []
                 if uploaded_files:
@@ -1092,7 +1108,6 @@ elif choice == "📝 استمارة تقييم جديدة":
                     "suggestions": suggestions
                 }
 
-                # 1. الحفظ الفوري اللحظي في SQLite
                 conn = sqlite3.connect("evaluation_system.db")
                 c = conn.cursor()
                 c.execute('''INSERT INTO evaluations (
@@ -1112,13 +1127,11 @@ elif choice == "📝 استمارة تقييم جديدة":
                 conn.commit()
                 conn.close()
 
-                # 2. تشغيل الرفع السحابي في خيط خلفي غير متزامن لتفادي أي تأخير
                 threading.Thread(
                     target=background_upload_task,
                     args=(new_eval_id, eval_data_dict, uploaded_files_data, school_name, visit_date)
                 ).start()
 
-                # 3. إظهار رسالة النجاح فوراً
                 st.session_state.last_saved_eval = {
                     "teacher": teacher_name,
                     "school": school_name,
