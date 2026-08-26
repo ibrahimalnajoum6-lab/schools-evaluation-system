@@ -64,7 +64,6 @@ def auto_backup_database_to_drive():
         pass
 
 def background_upload_task(eval_id, eval_data_dict, uploaded_files_data, school_name, visit_date):
-    """مهمة معالجة خلفية لرفع الملفات والنسخ دون تجميد واجهة المستخدم"""
     try:
         drive_links = []
         excel_bytes = generate_evaluation_excel_form(eval_data_dict)
@@ -100,7 +99,7 @@ def delete_evaluation_by_id(eval_id):
     threading.Thread(target=auto_backup_database_to_drive).start()
 
 # -------------------------------------------------------------
-# إعداد الصفحة وتصاميم الـ CSS (مع إخفاء شارة Streamlit تماماً)
+# إعداد الصفحة وتصاميم الـ CSS وإخفاء الشارة بالكامل عبر JavaScript
 # -------------------------------------------------------------
 st.set_page_config(
     page_title="منظومة تقييم المدارس الشرعية",
@@ -126,14 +125,16 @@ st.markdown("""
         display: none !important;
     }
     
-    /* إخفاء شارة Streamlit والزر الأحمر السفلي نهائياً */
-    #MainMenu {visibility: hidden !important;}
-    footer {visibility: hidden !important;}
+    #MainMenu, footer, header {visibility: hidden !important; display: none !important;}
     div[class*="viewerBadge"], 
     [data-testid="stStatusWidget"],
-    .viewerBadge_container__1QSob {
+    .viewerBadge_container__1QSob,
+    a[href*="streamlit.io"] {
         display: none !important;
         visibility: hidden !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+        height: 0px !important;
     }
     
     .block-container {
@@ -224,6 +225,21 @@ st.markdown("""
         gap: 12px !important;
     }
 </style>
+
+<script>
+    // كود جافاسكريبت لحذف الشارة أو عبارة Created by فور تحميل الصفحة
+    function removeBranding() {
+        const elements = document.querySelectorAll('*');
+        elements.forEach(el => {
+            if (el.innerText && (el.innerText.includes('Created by') || el.innerText.includes('Made with Streamlit'))) {
+                el.style.display = 'none';
+            }
+        });
+        const badges = document.querySelectorAll('div[class*="viewerBadge"], a[href*="streamlit.io"]');
+        badges.forEach(b => b.remove());
+    }
+    setInterval(removeBranding, 500);
+</script>
 """, unsafe_allow_html=True)
 
 # -------------------------------------------------------------
@@ -682,7 +698,7 @@ def generate_annual_executive_report(evals_df, schools_df, users_df):
         visited_schools = len(evals_df['school_name'].unique()) if not evals_df.empty else 0
         coverage_pct = (visited_schools / total_schools * 100) if total_schools > 0 else 0
         
-        rating_counts = eval_data_rating = evals_df['rating'].value_counts() if not evals_df.empty else pd.Series()
+        rating_counts = evals_df['rating'].value_counts() if not evals_df.empty else pd.Series()
         ratings_data = []
         for r in ["ممتاز", "جيد جداً", "جيد", "مقبول", "ضعيف"]:
             cnt = rating_counts.get(r, 0)
@@ -739,7 +755,6 @@ def login(username, password):
     return user
 
 if st.session_state.user is None:
-    # تنسيق شاشة تسجيل الدخول في المنتصف بحجم متناسق وأنيق
     st.markdown("<div style='height: 40px;'></div>", unsafe_allow_html=True)
     col_l, col_center, col_r = st.columns([1, 2, 1])
     
