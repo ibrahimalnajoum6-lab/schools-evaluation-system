@@ -41,7 +41,7 @@ def upload_file_to_drive(file_bytes, filename, school_name, visit_date_obj, mime
         return None
 
 # -------------------------------------------------------------
-# إعداد الصفحة وتجاوبها المحترف والسلس مع الجوال
+# إعداد الصفحة وتصميم التبويبات الجمالية والانسيابية
 # -------------------------------------------------------------
 st.set_page_config(
     page_title="منظومة تقييم المدارس الشرعية",
@@ -52,38 +52,90 @@ st.set_page_config(
 
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap');
     
     html, body, [class*="css"] {
         direction: rtl;
         text-align: right;
         font-family: 'Tajawal', sans-serif !important;
         scroll-behavior: smooth;
+        background-color: #f8fafc;
     }
     
-    /* إخفاء القوائم الجانبية والرأسية لتجربة تطبيق جوال أصيلة */
+    /* إخفاء القوائم الجانبية والرأسية لشاشات الجوال */
     [data-testid="stSidebar"], [data-testid="stSidebarCollapseButton"], [data-testid="collapsedControl"], header[data-testid="stHeader"] {
         display: none !important;
     }
     
     .block-container {
-        padding: 0.8rem !important;
+        padding: 0.6rem !important;
         max-width: 100% !important;
     }
     
+    /* كروت ناعمة وعصرية */
     .mobile-card {
         background-color: #ffffff;
-        border-radius: 14px;
-        padding: 14px;
+        border-radius: 16px;
+        padding: 16px;
         margin-bottom: 12px;
         border: 1px solid #edf2f7;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+        box-shadow: 0 4px 14px rgba(0,0,0,0.03);
     }
     
+    /* بطاقة النتيجة الجمالية العائمة */
+    .score-banner {
+        background: linear-gradient(135deg, #0d5c3a 0%, #15803d 100%);
+        color: white;
+        border-radius: 16px;
+        padding: 16px;
+        text-align: center;
+        box-shadow: 0 6px 18px rgba(13,92,58,0.22);
+        margin-bottom: 14px;
+    }
+    
+    /* تصميم تبويبات فائق الجمال والنعومة */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 6px;
+        background-color: #e2e8f0;
+        padding: 5px;
+        border-radius: 14px;
+        margin-bottom: 14px;
+    }
+    
+    .stTabs [data-baseweb="tab"] {
+        border-radius: 10px;
+        padding: 8px 14px;
+        font-weight: 700;
+        font-size: 13.5px;
+        color: #475569;
+        background-color: transparent;
+        border: none !important;
+        transition: all 0.25s ease;
+    }
+    
+    .stTabs [aria-selected="true"] {
+        background-color: #ffffff !important;
+        color: #0d5c3a !important;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    
+    /* بطاقة البند التقييمي */
+    .criterion-item {
+        background: #ffffff;
+        border: 1px solid #f1f5f9;
+        border-right: 4px solid #0d5c3a;
+        border-radius: 10px;
+        padding: 10px 12px;
+        margin-bottom: 8px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+    }
+    
+    /* أزرار مريحة وجذابة */
     .stButton > button {
-        border-radius: 10px !important;
+        border-radius: 12px !important;
         font-weight: 700 !important;
-        padding: 10px 16px !important;
+        padding: 12px 18px !important;
+        transition: all 0.2s ease;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -552,7 +604,7 @@ if st.session_state.user is None:
     st.stop()
 
 # -------------------------------------------------------------
-# الرأس وشريط التنقل العلوي السلس
+# الرأس وشريط التنقل العلوي المبوب
 # -------------------------------------------------------------
 st.markdown(f"""
 <div style='display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; background: #fff; padding: 10px 14px; border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.04);'>
@@ -563,142 +615,176 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-menu_options = ["📝 تقييم جديد", "🔍 سجل الزيارات والتعديل"]
+main_menu_options = ["📝 تقييم جديد", "🔍 سجل الزيارات والتعديل"]
 if st.session_state.user["role"] == "Admin":
-    menu_options.append("⚙️ لوحة الإدارة")
+    main_menu_options.append("⚙️ لوحة الإدارة")
 
 c_nav, c_out = st.columns([4, 1])
 with c_nav:
-    choice = st.radio("التنقل السريع", menu_options, horizontal=True, label_visibility="collapsed")
+    choice = st.radio("القائمة الرئيسية", main_menu_options, horizontal=True, label_visibility="collapsed")
 with c_out:
     if st.button("خروج", use_container_width=True):
         st.session_state.user = None
         st.rerun()
 
 # -------------------------------------------------------------
-# 1. شاشة استمارة تقييم جديدة مع رفع الملفات
+# 1. شاشة استمارة تقييم جديدة بنظام التبويبات الجمالية
 # -------------------------------------------------------------
 if choice == "📝 تقييم جديد":
     
-    st.markdown("#### 📌 البيانات الأساسية للزيارة")
-    
-    conn = sqlite3.connect("evaluation_system.db")
-    schools_df = pd.read_sql_query("SELECT name FROM schools", conn)
-    conn.close()
-    schools_list = schools_df['name'].tolist() if not schools_df.empty else ["لا توجد مدارس"]
+    # تهيئة درجات البنود
+    for item in CRITERIA:
+        k = f"q_val_{item['id']}"
+        if k not in st.session_state:
+            st.session_state[k] = item['max']
 
-    c1, c2 = st.columns(2)
-    with c1:
-        school_name = st.selectbox("المدرسة", schools_list)
-        teacher_name = st.text_input("اسم المدرس *")
-        subject = st.text_input("المادة", value=st.session_state.user["specialization"])
-        grade_level = st.selectbox("الصف", ["السابع", "الثامن", "التاسع", "العاشر", "الحادي عشر", "الثالث الثانوي"])
-        section = st.text_input("الشعبة", value="الأولى")
-    with c2:
-        gender_type = st.selectbox("نوع المدرسة", ["ذكور", "إناث"])
-        visit_date = st.date_input("تاريخ الزيارة", value=date.today())
-        academic_year = st.selectbox("العام الدراسي", ["2026 - 2027", "2025 - 2026"])
-        semester = st.selectbox("الفصل الدراسي", ["الفصل الأول", "الفصل الثاني"])
-        committee_no = st.text_input("رقم اللجنة", value="1")
+    # حساب المجموع والتقدير لحظياً
+    total_live = sum(st.session_state[f"q_val_{item['id']}"] for item in CRITERIA)
+    rating_live = "ممتاز" if total_live >= 90 else "جيد جداً" if total_live >= 80 else "جيد" if total_live >= 70 else "مقبول" if total_live >= 50 else "ضعيف"
 
-    lesson_topic = st.text_input("موضوع الدرس")
-    
-    c3, c4 = st.columns(2)
-    with c3:
-        specialization = st.text_input("الاختصاص", value=st.session_state.user["specialization"])
-        student_count = st.number_input("عدد الطلاب", min_value=1, value=25)
-    with c4:
-        job_status = st.selectbox("الوضع الوظيفي", ["أصيل", "وكيل", "مكلف"])
-        experience = st.text_input("الخبرة", value="5 سنوات")
+    # بطاقة النتيجة الحية العائمة
+    st.markdown(f"""
+    <div class='score-banner'>
+        <div style='font-size: 12px; opacity: 0.9;'>المجموع الكلي المباشر</div>
+        <div style='font-size: 30px; font-weight: 800; margin: 2px 0;'>{total_live} <span style='font-size: 15px; font-weight: 500;'>/ 100</span></div>
+        <div style='display: inline-block; background: rgba(255,255,255,0.22); padding: 2px 12px; border-radius: 20px; font-size: 12px; font-weight: 700;'>
+            التقدير: {rating_live}
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
-    st.markdown("---")
-    st.markdown("#### 📊 بنود التقييم الـ 25")
-    
-    form_scores = {}
-    for d in DOMAINS:
-        st.markdown(f"**🔹 مجال: {d}**")
-        d_items = [i for i in CRITERIA if i['domain'] == d]
-        for it in d_items:
-            form_scores[str(it['id'])] = st.number_input(
-                f"{it['id']}. {it['text']} (من {it['max']})",
-                min_value=0, max_value=it['max'], value=it['max'],
-                key=f"new_sc_{it['id']}"
-            )
+    # التبويبات الرئيسية لاستمارة التقييم
+    tab_info, tab_domains, tab_notes = st.tabs(["📌 1. بيانات الزيارة", "📋 2. مجالات التقييم", "✍️ 3. الملاحظات والرفع"])
 
-    st.markdown("---")
-    st.markdown("#### ✍️ الملاحظات والشواهد")
-    excellence_points = st.text_area("🌟 نقاط التميز")
-    dev_points = st.text_area("💡 نقاط التطوير")
-    suggestions = st.text_area("📌 المقترحات والتوصيات")
-    
-    # حقل رفع الملفات والصور والشواهد
-    uploaded_files = st.file_uploader("📷 رفع شواهد وصور / مقطع فيديو من الهاتف", accept_multiple_files=True)
+    with tab_info:
+        st.markdown("<div class='mobile-card'>", unsafe_allow_html=True)
+        conn = sqlite3.connect("evaluation_system.db")
+        schools_df = pd.read_sql_query("SELECT name FROM schools", conn)
+        conn.close()
+        schools_list = schools_df['name'].tolist() if not schools_df.empty else ["لا توجد مدارس"]
 
-    if st.button("💾 حفظ الاستمارة ورفع الملفات إلى جوجل درايف", type="primary", use_container_width=True):
-        if not teacher_name.strip():
-            st.error("⚠️ يرجى إدخال اسم المدرس.")
-        else:
-            total_calc = sum(form_scores.values())
-            rating_calc = "ممتاز" if total_calc >= 90 else "جيد جداً" if total_calc >= 80 else "جيد" if total_calc >= 70 else "مقبول" if total_calc >= 50 else "ضعيف"
+        c1, c2 = st.columns(2)
+        with c1:
+            school_name = st.selectbox("المؤسسة التعليمية الشرعية", schools_list)
+            teacher_name = st.text_input("اسم المدرس *", placeholder="أدخل اسم المدرس...")
+            subject = st.text_input("المادة", value=st.session_state.user["specialization"])
+            grade_level = st.selectbox("الصف", ["السابع", "الثامن", "التاسع", "العاشر", "الحادي عشر", "الثالث الثانوي"])
+            section = st.text_input("الشعبة", value="الأولى")
+        with c2:
+            gender_type = st.selectbox("نوع المدرسة", ["ذكور", "إناث"])
+            visit_date = st.date_input("تاريخ الزيارة", value=date.today())
+            academic_year = st.selectbox("العام الدراسي", ["2026 - 2027", "2025 - 2026"])
+            semester = st.selectbox("الفصل الدراسي", ["الفصل الأول", "الفصل الثاني"])
+            committee_no = st.text_input("رقم اللجنة", value="1")
 
-            saved_media = []
-            drive_links = []
-            
-            # رفع الشواهد المرفقة إلى جوجل درايف
-            if uploaded_files:
-                os.makedirs("uploads", exist_ok=True)
-                for f in uploaded_files:
-                    f_bytes = f.getbuffer()
-                    path = os.path.join("uploads", f.name)
-                    with open(path, "wb") as file_out:
-                        file_out.write(f_bytes)
-                    saved_media.append(path)
+        lesson_topic = st.text_input("موضوع الدرس", placeholder="اكتب موضوع الدرس...")
+        
+        c3, c4 = st.columns(2)
+        with c3:
+            specialization = st.text_input("الاختصاص", value=st.session_state.user["specialization"])
+            student_count = st.number_input("عدد الطلاب", min_value=1, value=25)
+        with c4:
+            job_status = st.selectbox("الوضع الوظيفي", ["أصيل", "وكيل", "مكلف"])
+            experience = st.text_input("الخبرة في التعليم", value="5 سنوات")
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    with tab_domains:
+        # تبويبات داخلية للمجالات الخمسة
+        domain_tabs = st.tabs(DOMAINS)
+        
+        for idx, dom in enumerate(DOMAINS):
+            with domain_tabs[idx]:
+                dom_items = [i for i in CRITERIA if i['domain'] == dom]
+                for it in dom_items:
+                    st.markdown(f"""
+                    <div class='criterion-item'>
+                        <div style='font-weight: 700; font-size: 13.5px; color: #1e293b;'>{it['id']}. {it['text']}</div>
+                        <div style='font-size: 11px; color: #64748b;'>الدرجة القصوى المستحقة: ({it['max']})</div>
+                    </div>
+                    """, unsafe_allow_html=True)
                     
-                    with st.spinner(f"جاري رفع {f.name} إلى Google Drive..."):
-                        link = upload_file_to_drive(f.getvalue(), f.name, school_name, visit_date, f.type)
-                        if link:
-                            drive_links.append(link)
+                    scores_options = list(range(it['max'] + 1))
+                    st.select_slider(
+                        f"درجة بند {it['id']}",
+                        options=scores_options,
+                        value=st.session_state[f"q_val_{it['id']}"],
+                        key=f"slider_val_{it['id']}",
+                        on_change=lambda i=it['id']: st.session_state.update({f"q_val_{i}": st.session_state[f"slider_val_{i}"]}),
+                        label_visibility="collapsed"
+                    )
 
-            eval_data_dict = {
-                "committee_no": committee_no, "visit_date": str(visit_date), "academic_year": academic_year,
-                "semester": semester, "school_name": school_name, "gender_type": gender_type,
-                "supervisor_name": st.session_state.user["name"], "teacher_name": teacher_name, "subject": subject,
-                "specialization": specialization, "student_count": student_count, "grade_level": grade_level,
-                "section": section, "lesson_topic": lesson_topic, "job_status": job_status,
-                "experience": experience, "scores_json": json.dumps(form_scores), "total_score": total_calc,
-                "rating": rating_calc, "excellence_points": excellence_points, "dev_points": dev_points,
-                "suggestions": suggestions
-            }
-            
-            # إنشاء ورفع استمارة الإكسل الرسمية إلى درايف
-            with st.spinner("جاري إنشاء ورفع تقرير الإكسل الرسمي..."):
-                excel_bytes = generate_evaluation_excel_form(eval_data_dict)
-                excel_filename = f"استمارة_{teacher_name}_{visit_date}.xlsx"
-                excel_link = upload_file_to_drive(
-                    excel_bytes, excel_filename, school_name, visit_date,
-                    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-                )
-                if excel_link:
-                    drive_links.append(excel_link)
+    with tab_notes:
+        st.markdown("<div class='mobile-card'>", unsafe_allow_html=True)
+        excellence_points = st.text_area("🌟 نقاط التميز", placeholder="اكتب نقاط القوة والتميز...")
+        dev_points = st.text_area("💡 نقاط التطوير", placeholder="اكتب نقاط التطوير والتحسين...")
+        suggestions = st.text_area("📌 المقترحات والتوصيات", placeholder="اكتب المقترحات والتوجيهات...")
+        
+        uploaded_files = st.file_uploader("📷 رفع شواهد وصور / مقطع فيديو من الهاتف", accept_multiple_files=True)
+        st.markdown("</div>", unsafe_allow_html=True)
 
-            conn = sqlite3.connect("evaluation_system.db")
-            c = conn.cursor()
-            c.execute('''INSERT INTO evaluations (
-                committee_no, visit_date, academic_year, semester, school_name, gender_type,
-                supervisor_name, teacher_name, subject, specialization, student_count,
-                grade_level, section, lesson_topic, job_status, experience,
-                scores_json, total_score, rating, excellence_points, dev_points, suggestions,
-                media_paths, drive_links, status
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''', (
-                committee_no, str(visit_date), academic_year, semester, school_name, gender_type,
-                st.session_state.user["name"], teacher_name, subject, specialization, student_count,
-                grade_level, section, lesson_topic, job_status, experience,
-                json.dumps(form_scores), total_calc, rating_calc, excellence_points, dev_points, suggestions,
-                ",".join(saved_media), ",".join(drive_links), "معتمد"
-            ))
-            conn.commit()
-            conn.close()
-            st.success(f"✅ تم حفظ الاستمارة ورفع ملفاتها إلى مجلد ({school_name} / {visit_date.month}-{visit_date.year}) في جوجل درايف بنجاح!")
+        if st.button("💾 اعتماد وحفظ الاستمارة ورفع الملفات إلى جوجل درايف", type="primary", use_container_width=True):
+            if not teacher_name.strip():
+                st.error("⚠️ يرجى إدخال اسم المدرس في تبويب البيانات الأساسية.")
+            else:
+                final_scores_dict = {str(item['id']): st.session_state[f"q_val_{item['id']}"] for item in CRITERIA}
+                saved_media = []
+                drive_links = []
+                
+                # رفع الشواهد المرفقة إلى جوجل درايف
+                if uploaded_files:
+                    os.makedirs("uploads", exist_ok=True)
+                    for f in uploaded_files:
+                        f_bytes = f.getbuffer()
+                        path = os.path.join("uploads", f.name)
+                        with open(path, "wb") as file_out:
+                            file_out.write(f_bytes)
+                        saved_media.append(path)
+                        
+                        with st.spinner(f"جاري رفع {f.name} إلى درايف..."):
+                            link = upload_file_to_drive(f.getvalue(), f.name, school_name, visit_date, f.type)
+                            if link:
+                                drive_links.append(link)
+
+                eval_data_dict = {
+                    "committee_no": committee_no, "visit_date": str(visit_date), "academic_year": academic_year,
+                    "semester": semester, "school_name": school_name, "gender_type": gender_type,
+                    "supervisor_name": st.session_state.user["name"], "teacher_name": teacher_name, "subject": subject,
+                    "specialization": specialization, "student_count": student_count, "grade_level": grade_level,
+                    "section": section, "lesson_topic": lesson_topic, "job_status": job_status,
+                    "experience": experience, "scores_json": json.dumps(final_scores_dict), "total_score": total_live,
+                    "rating": rating_live, "excellence_points": excellence_points, "dev_points": dev_points,
+                    "suggestions": suggestions
+                }
+                
+                # إنشاء ورفع استمارة الإكسل الرسمية إلى درايف
+                with st.spinner("جاري إنشاء ورفع تقرير الإكسل الرسمي..."):
+                    excel_bytes = generate_evaluation_excel_form(eval_data_dict)
+                    excel_filename = f"استمارة_{teacher_name}_{visit_date}.xlsx"
+                    excel_link = upload_file_to_drive(
+                        excel_bytes, excel_filename, school_name, visit_date,
+                        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                    )
+                    if excel_link:
+                        drive_links.append(excel_link)
+
+                conn = sqlite3.connect("evaluation_system.db")
+                c = conn.cursor()
+                c.execute('''INSERT INTO evaluations (
+                    committee_no, visit_date, academic_year, semester, school_name, gender_type,
+                    supervisor_name, teacher_name, subject, specialization, student_count,
+                    grade_level, section, lesson_topic, job_status, experience,
+                    scores_json, total_score, rating, excellence_points, dev_points, suggestions,
+                    media_paths, drive_links, status
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''', (
+                    committee_no, str(visit_date), academic_year, semester, school_name, gender_type,
+                    st.session_state.user["name"], teacher_name, subject, specialization, student_count,
+                    grade_level, section, lesson_topic, job_status, experience,
+                    json.dumps(final_scores_dict), total_live, rating_live, excellence_points, dev_points, suggestions,
+                    ",".join(saved_media), ",".join(drive_links), "معتمد"
+                ))
+                conn.commit()
+                conn.close()
+                st.success(f"✅ تم حفظ الاستمارة ورفع الملفات إلى مجلد ({school_name} / {visit_date.month}-{visit_date.year}) في جوجل درايف بنجاح!")
 
 # -------------------------------------------------------------
 # 2. سجل الزيارات والمعاينة والتعديل بعد الإرسال
@@ -714,7 +800,7 @@ elif choice == "🔍 سجل الزيارات والتعديل":
     conn.close()
     
     if df.empty:
-        st.info("لا توجد استمارات مسجلة بعد.")
+        st.info("لا توجد استمارات مسجلة حتى الآن.")
     else:
         search_txt = st.text_input("🔍 بحث سريع باسم المدرس أو المدرسة", placeholder="اكتب للبحث...")
         filtered_df = df.copy()
@@ -731,26 +817,10 @@ elif choice == "🔍 سجل الزيارات والتعديل":
                 
                 rec_dict = row.to_dict()
                 
-                # تحميل الإكسل
-                excel_form_bytes = generate_evaluation_excel_form(rec_dict)
-                st.download_button(
-                    label="📊 تحميل الاستمارة الرسمية (Excel)",
-                    data=excel_form_bytes,
-                    file_name=f"استمارة_{row['teacher_name']}_{row['visit_date']}.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    use_container_width=True,
-                    key=f"dl_{row['id']}"
-                )
+                # تبويبات داخل تفاصيل كل استمارة (تعديل / تصدير وطباعة PDF / درايف)
+                sub_tab1, sub_tab2, sub_tab3 = st.tabs(["✏️ تعديل الاستمارة", "🖨️ طباعة وتصدير (PDF/Excel)", "📂 روابط درايف"])
                 
-                # إظهار روابط جوجل درايف
-                if row.get("drive_links"):
-                    st.markdown("📂 **روابط الملفات على Google Drive:**")
-                    for i, link in enumerate(str(row["drive_links"]).split(','), 1):
-                        if link.strip():
-                            st.markdown(f"- [عرض الملف {i} على درايف]({link.strip()})")
-
-                # ----------------- تعديل الاستمارة بعد الإرسال -----------------
-                with st.expander("✏️ تعديل بيانات الاستمارة والدرجات"):
+                with sub_tab1:
                     e_tname = st.text_input("اسم المدرس", value=row["teacher_name"], key=f"et_{row['id']}")
                     e_subj = st.text_input("المادة", value=row["subject"], key=f"es_{row['id']}")
                     e_topic = st.text_input("موضوع الدرس", value=row["lesson_topic"], key=f"etp_{row['id']}")
@@ -779,7 +849,6 @@ elif choice == "🔍 سجل الزيارات والتعديل":
                     e_dev = st.text_area("نقاط التطوير", value=row["dev_points"], key=f"edv_{row['id']}")
                     e_sug = st.text_area("المقترحات", value=row["suggestions"], key=f"esg_{row['id']}")
                     
-                    # إمكانية رفع شواهد إضافية أثناء التعديل
                     e_files = st.file_uploader("📷 رفع شواهد إضافية", accept_multiple_files=True, key=f"ef_{row['id']}")
 
                     if st.button("💾 حفظ وتحديث التعديلات", type="primary", use_container_width=True, key=f"btn_edit_{row['id']}"):
@@ -807,10 +876,29 @@ elif choice == "🔍 سجل الزيارات والتعديل":
                         st.success("✅ تم تحديث الاستمارة والدرجات بنجاح!")
                         st.rerun()
 
-                # معاينة وطباعة الاستمارة الرسمية كـ PDF
-                with st.expander("🖨️ عرض وطباعة الاستمارة كـ PDF"):
+                with sub_tab2:
+                    excel_form_bytes = generate_evaluation_excel_form(rec_dict)
+                    st.download_button(
+                        label="📊 تحميل الاستمارة الرسمية (Excel)",
+                        data=excel_form_bytes,
+                        file_name=f"استمارة_{row['teacher_name']}_{row['visit_date']}.xlsx",
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        use_container_width=True,
+                        key=f"dl_{row['id']}"
+                    )
+                    st.markdown("---")
+                    st.markdown("#### 🖨️ استمارة التقييم الرسمية (PDF)")
                     html_preview = get_evaluation_html(rec_dict)
                     components.html(html_preview, height=750, scrolling=True)
+
+                with sub_tab3:
+                    if row.get("drive_links"):
+                        st.markdown("📂 **الملفات المحفوظة على Google Drive:**")
+                        for i, link in enumerate(str(row["drive_links"]).split(','), 1):
+                            if link.strip():
+                                st.markdown(f"- [عرض الملف {i} على درايف]({link.strip()})")
+                    else:
+                        st.info("لا توجد ملفات مرفوعة لهذه الاستمارة.")
 
 # -------------------------------------------------------------
 # 3. لوحة الإدارة الكاملة (Admin)
