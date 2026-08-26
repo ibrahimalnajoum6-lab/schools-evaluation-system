@@ -71,7 +71,7 @@ def delete_evaluation_by_id(eval_id):
     auto_backup_database_to_drive()
 
 # -------------------------------------------------------------
-# إعداد الصفحة وتصميم التبويبات الجمالية
+# إعداد الصفحة وتكبير الخطوط والأيقونات والأزرار لتسهيل الاستخدام
 # -------------------------------------------------------------
 st.set_page_config(
     page_title="منظومة تقييم المدارس الشرعية",
@@ -90,6 +90,7 @@ st.markdown("""
         font-family: 'Tajawal', sans-serif !important;
         scroll-behavior: smooth;
         background-color: #f8fafc;
+        font-size: 16px;
     }
     
     [data-testid="stSidebar"], [data-testid="stSidebarCollapseButton"], [data-testid="collapsedControl"], header[data-testid="stHeader"] {
@@ -97,43 +98,46 @@ st.markdown("""
     }
     
     .block-container {
-        padding: 0.6rem !important;
+        padding: 0.8rem !important;
         max-width: 100% !important;
     }
     
+    /* تكبير وتوضيح بطاقات المحتوى */
     .mobile-card {
         background-color: #ffffff;
-        border-radius: 16px;
-        padding: 16px;
-        margin-bottom: 12px;
-        border: 1px solid #edf2f7;
-        box-shadow: 0 4px 14px rgba(0,0,0,0.03);
+        border-radius: 18px;
+        padding: 20px;
+        margin-bottom: 16px;
+        border: 2px solid #e2e8f0;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.05);
     }
     
+    /* تكبير بطاقة النتيجة العائمة والخطوط */
     .score-banner {
         background: linear-gradient(135deg, #0d5c3a 0%, #15803d 100%);
         color: white;
-        border-radius: 16px;
-        padding: 16px;
+        border-radius: 18px;
+        padding: 20px;
         text-align: center;
-        box-shadow: 0 6px 18px rgba(13,92,58,0.22);
-        margin-bottom: 14px;
+        box-shadow: 0 8px 22px rgba(13,92,58,0.28);
+        margin-bottom: 18px;
     }
     
+    /* تكبير شريط التنقل والأزرار المبوبّة */
     .stTabs [data-baseweb="tab-list"] {
-        gap: 6px;
+        gap: 8px;
         background-color: #e2e8f0;
-        padding: 5px;
-        border-radius: 14px;
-        margin-bottom: 14px;
+        padding: 8px;
+        border-radius: 16px;
+        margin-bottom: 16px;
     }
     
     .stTabs [data-baseweb="tab"] {
-        border-radius: 10px;
-        padding: 8px 12px;
-        font-weight: 700;
-        font-size: 13px;
-        color: #475569;
+        border-radius: 12px;
+        padding: 12px 18px;
+        font-weight: 800;
+        font-size: 16px;
+        color: #334155;
         background-color: transparent;
         border: none !important;
         transition: all 0.25s ease;
@@ -142,24 +146,38 @@ st.markdown("""
     .stTabs [aria-selected="true"] {
         background-color: #ffffff !important;
         color: #0d5c3a !important;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.12);
     }
     
+    /* تكبير بنود التقييم */
     .criterion-item {
         background: #ffffff;
-        border: 1px solid #f1f5f9;
-        border-right: 4px solid #0d5c3a;
-        border-radius: 10px;
-        padding: 10px 12px;
-        margin-bottom: 8px;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+        border: 1px solid #e2e8f0;
+        border-right: 6px solid #0d5c3a;
+        border-radius: 12px;
+        padding: 14px 16px;
+        margin-bottom: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.03);
     }
     
+    /* تكبير الأزرار لتسهيل اللمس بالإصبع */
     .stButton > button {
-        border-radius: 12px !important;
-        font-weight: 700 !important;
-        padding: 12px 18px !important;
-        transition: all 0.2s ease;
+        border-radius: 14px !important;
+        font-weight: 800 !important;
+        font-size: 17px !important;
+        padding: 14px 22px !important;
+        min-height: 52px !important;
+        box-shadow: 0 3px 8px rgba(0,0,0,0.08) !important;
+    }
+    
+    /* تكبير حقول الإدخال والنصوص */
+    input, select, textarea {
+        font-size: 16px !important;
+        padding: 12px !important;
+    }
+    
+    .stRadio [role="radiogroup"] {
+        gap: 12px !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -361,9 +379,9 @@ def get_evaluation_html(eval_data):
             .bg-gray {{ background-color: #f2f2f2; }}
             .header-tbl td {{ border: none; font-weight: bold; }}
             .btn-print {{
-                background-color: #0d5c3a; color: white; padding: 10px 16px;
-                border: none; border-radius: 6px; cursor: pointer;
-                font-size: 14px; font-weight: bold; margin-bottom: 10px; width: 100%;
+                background-color: #0d5c3a; color: white; padding: 12px 18px;
+                border: none; border-radius: 8px; cursor: pointer;
+                font-size: 16px; font-weight: bold; margin-bottom: 12px; width: 100%;
             }}
         </style>
     </head>
@@ -611,7 +629,7 @@ def generate_evaluation_excel_form(eval_data):
     return excel_buffer.getvalue()
 
 # -------------------------------------------------------------
-# دالة توليد التقرير التركيبي الفصلي / السنوي
+# دالة توليد التقرير التركيبي
 # -------------------------------------------------------------
 def generate_annual_executive_report(evals_df, schools_df, users_df):
     output = io.BytesIO()
@@ -678,8 +696,8 @@ def login(username, password):
 
 if st.session_state.user is None:
     st.markdown("<div style='text-align: center; margin-top: 25px;'>", unsafe_allow_html=True)
-    st.markdown("## 🕌 منظومة التقييم الشرعي")
-    st.caption("تسجيل دخول الموجهين والمشرفين")
+    st.markdown("<h2 style='font-size: 26px;'>🕌 منظومة التقييم الشرعي</h2>", unsafe_allow_html=True)
+    st.markdown("<p style='font-size: 16px; color: #64748b;'>تسجيل دخول الموجهين والمشرفين</p>", unsafe_allow_html=True)
     st.markdown("</div>", unsafe_allow_html=True)
     
     with st.container():
@@ -687,7 +705,7 @@ if st.session_state.user is None:
         u_name = st.text_input("اسم المستخدم", placeholder="اسم المستخدم...")
         u_pass = st.text_input("كلمة المرور", type="password", placeholder="••••••")
         
-        if st.button("تسجيل الدخول", type="primary", use_container_width=True):
+        if st.button("🔑 تسجيل الدخول", type="primary", use_container_width=True):
             user_data = login(u_name, u_pass)
             if user_data:
                 st.session_state.user = {
@@ -704,20 +722,20 @@ if st.session_state.user is None:
 # الرأس وشريط التنقل
 # -------------------------------------------------------------
 st.markdown(f"""
-<div style='display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; background: #fff; padding: 10px 14px; border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.04);'>
+<div style='display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; background: #fff; padding: 12px 16px; border-radius: 14px; box-shadow: 0 3px 8px rgba(0,0,0,0.05);'>
     <div>
-        <span style='font-size: 15px; font-weight: 800; color: #0d5c3a;'>👤 {st.session_state.user['name']}</span><br>
-        <span style='font-size: 11px; color: #64748b;'>{st.session_state.user['specialization']} | {st.session_state.user['role']}</span>
+        <span style='font-size: 18px; font-weight: 800; color: #0d5c3a;'>👤 {st.session_state.user['name']}</span><br>
+        <span style='font-size: 13px; color: #64748b;'>{st.session_state.user['specialization']} | {st.session_state.user['role']}</span>
     </div>
 </div>
 """, unsafe_allow_html=True)
 
-main_menu_options = ["📝 استمارة تقييم", "🔍 سجل الزيارات والتصدير", "📈 تتبع تطور المدرسين"]
+main_menu_options = ["📝 استمارة تقييم جديدة", "🔍 سجل الزيارات والتصدير", "📈 تتبع تطور المدرسين"]
 if st.session_state.user["role"] == "Admin":
     main_menu_options = [
         "📊 لوحة المؤشرات والمتابعة",
         "📑 التقرير التركيبي السنوي",
-        "📝 استمارة تقييم",
+        "📝 استمارة تقييم جديدة",
         "🔍 سجل الزيارات والتصدير",
         "📈 تتبع تطور المدرسين",
         "⚙️ إدارة النظام والحماية"
@@ -727,7 +745,7 @@ c_nav, c_out = st.columns([4, 1])
 with c_nav:
     choice = st.radio("القائمة الرئيسية", main_menu_options, horizontal=True, label_visibility="collapsed")
 with c_out:
-    if st.button("خروج", use_container_width=True):
+    if st.button("🚪 خروج", use_container_width=True):
         st.session_state.user = None
         st.rerun()
 
@@ -751,13 +769,13 @@ if choice == "📊 لوحة المؤشرات والمتابعة" and st.session_
     
     m1, m2, m3, m4 = st.columns(4)
     with m1:
-        st.markdown(f"<div class='mobile-card' style='text-align: center;'><div style='color:#64748b; font-size:12px;'>إجمالي المدارس</div><div style='font-size:24px; font-weight:800;'>{total_schools_count}</div></div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='mobile-card' style='text-align: center;'><div style='color:#64748b; font-size:13px;'>إجمالي المدارس</div><div style='font-size:26px; font-weight:900;'>{total_schools_count}</div></div>", unsafe_allow_html=True)
     with m2:
-        st.markdown(f"<div class='mobile-card' style='text-align: center;'><div style='color:#166534; font-size:12px;'>مدارس زِيرَت</div><div style='font-size:24px; font-weight:800; color:#166534;'>{visited_count}</div></div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='mobile-card' style='text-align: center;'><div style='color:#166534; font-size:13px;'>مدارس زِيرَت</div><div style='font-size:26px; font-weight:900; color:#166534;'>{visited_count}</div></div>", unsafe_allow_html=True)
     with m3:
-        st.markdown(f"<div class='mobile-card' style='text-align: center;'><div style='color:#991b1b; font-size:12px;'>مدارس لم تُزَر</div><div style='font-size:24px; font-weight:800; color:#991b1b;'>{unvisited_count}</div></div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='mobile-card' style='text-align: center;'><div style='color:#991b1b; font-size:13px;'>مدارس لم تُزَر</div><div style='font-size:26px; font-weight:900; color:#991b1b;'>{unvisited_count}</div></div>", unsafe_allow_html=True)
     with m4:
-        st.markdown(f"<div class='mobile-card' style='text-align: center;'><div style='color:#0d5c3a; font-size:12px;'>إجمالي الزيارات</div><div style='font-size:24px; font-weight:800; color:#0d5c3a;'>{total_visits}</div></div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='mobile-card' style='text-align: center;'><div style='color:#0d5c3a; font-size:13px;'>إجمالي الزيارات</div><div style='font-size:26px; font-weight:900; color:#0d5c3a;'>{total_visits}</div></div>", unsafe_allow_html=True)
 
     tab_vis, tab_unvis, tab_subjects, tab_monthly, tab_sups = st.tabs([
         "🏫 المدارس وزمن الانقطاع",
@@ -889,7 +907,7 @@ elif choice == "📑 التقرير التركيبي السنوي" and st.sessio
 # -------------------------------------------------------------
 # 2. شاشة استمارة تقييم جديدة
 # -------------------------------------------------------------
-elif choice == "📝 استمارة تقييم":
+elif choice == "📝 استمارة تقييم جديدة":
     for item in CRITERIA:
         k = f"q_val_{item['id']}"
         if k not in st.session_state:
@@ -900,9 +918,9 @@ elif choice == "📝 استمارة تقييم":
 
     st.markdown(f"""
     <div class='score-banner'>
-        <div style='font-size: 12px; opacity: 0.9;'>المجموع الكلي المباشر</div>
-        <div style='font-size: 30px; font-weight: 800; margin: 2px 0;'>{total_live} <span style='font-size: 15px; font-weight: 500;'>/ 100</span></div>
-        <div style='display: inline-block; background: rgba(255,255,255,0.22); padding: 2px 12px; border-radius: 20px; font-size: 12px; font-weight: 700;'>
+        <div style='font-size: 14px; opacity: 0.9;'>المجموع الكلي المباشر</div>
+        <div style='font-size: 34px; font-weight: 900; margin: 4px 0;'>{total_live} <span style='font-size: 16px; font-weight: 600;'>/ 100</span></div>
+        <div style='display: inline-block; background: rgba(255,255,255,0.25); padding: 4px 16px; border-radius: 20px; font-size: 14px; font-weight: 800;'>
             التقدير: {rating_live}
         </div>
     </div>
@@ -957,8 +975,8 @@ elif choice == "📝 استمارة تقييم":
                 for it in dom_items:
                     st.markdown(f"""
                     <div class='criterion-item'>
-                        <div style='font-weight: 700; font-size: 13.5px; color: #1e293b;'>{it['id']}. {it['text']}</div>
-                        <div style='font-size: 11px; color: #64748b;'>الدرجة القصوى: ({it['max']})</div>
+                        <div style='font-weight: 800; font-size: 15px; color: #1e293b;'>{it['id']}. {it['text']}</div>
+                        <div style='font-size: 13px; color: #64748b;'>الدرجة القصوى: ({it['max']})</div>
                     </div>
                     """, unsafe_allow_html=True)
                     scores_options = list(range(it['max'] + 1))
@@ -1051,11 +1069,11 @@ elif choice == "🔍 سجل الزيارات والتصدير":
     if df.empty:
         st.info("لا توجد استمارات مسجلة حتى الآن.")
     else:
-        # قسم سريع للحذف المباشر بدون أخطاء
-        with st.expander("🗑️ قسم حذف استمارة محددة"):
+        # قسم سريع وواضح لحذف أي استمارة
+        with st.expander("🗑️ قسم حذف استمارة محددة فوراً", expanded=False):
             delete_candidates = df.apply(lambda r: f"ID: {r['id']} | المدرس: {r['teacher_name']} | المدرسة: {r['school_name']} | التاريخ: {r['visit_date']}", axis=1).tolist()
             del_selection = st.selectbox("اختر الاستمارة المطلوب حذفها:", delete_candidates, key="del_select_box")
-            if st.button("🗑️ حذف هذه الاستمارة فوراً", type="secondary", use_container_width=True):
+            if st.button("🗑️ تأكيد حذف هذه الاستمارة الآن", type="secondary", use_container_width=True):
                 selected_del_id = int(del_selection.split("|")[0].replace("ID:", "").strip())
                 delete_evaluation_by_id(selected_del_id)
                 st.success(f"✅ تم حذف الاستمارة رقم {selected_del_id} بنجاح!")
@@ -1213,8 +1231,8 @@ elif choice == "📈 تتبع تطور المدرسين":
             
             st.markdown(f"""
             <div class='mobile-card'>
-                <div style='font-size: 16px; font-weight: 800; color: #0d5c3a;'>👨‍🏫 المدرس: {selected_teacher}</div>
-                <div style='font-size: 13px; color: #64748b;'>المادة: {t_df['subject'].iloc[0]} | عدد الزيارات المسجلة: <b>{visits_count}</b></div>
+                <div style='font-size: 18px; font-weight: 800; color: #0d5c3a;'>👨‍🏫 المدرس: {selected_teacher}</div>
+                <div style='font-size: 14px; color: #64748b;'>المادة: {t_df['subject'].iloc[0]} | عدد الزيارات المسجلة: <b>{visits_count}</b></div>
             </div>
             """, unsafe_allow_html=True)
             
@@ -1321,7 +1339,7 @@ elif choice == "⚙️ إدارة النظام والحماية" and st.session_
                     conn.commit()
                     conn.close()
                     auto_backup_database_to_drive()
-                    st.success("تم التحديث")
+                    st.success("تم التحديث بنجاح")
                     st.rerun()
 
     with admin_tab3:
@@ -1335,7 +1353,7 @@ elif choice == "⚙️ إدارة النظام والحماية" and st.session_
                 ns_name = st.text_input("اسم المدرسة")
                 ns_gen = st.selectbox("النوع", ["ذكور", "إناث"])
                 ns_loc = st.text_input("الموقع الجغرافي")
-                if st.form_submit_button("إضافة", use_container_width=True):
+                if st.form_submit_button("➕ إضافة المدرسة", use_container_width=True):
                     if ns_name:
                         conn = sqlite3.connect("evaluation_system.db")
                         c = conn.cursor()
