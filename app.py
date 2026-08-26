@@ -132,31 +132,6 @@ st.markdown("""
         padding: 12px 18px !important;
         transition: all 0.2s ease;
     }
-    
-    .badge-danger {
-        background-color: #fee2e2;
-        color: #991b1b;
-        padding: 3px 8px;
-        border-radius: 6px;
-        font-size: 11.5px;
-        font-weight: 700;
-    }
-    .badge-warning {
-        background-color: #fef3c7;
-        color: #92400e;
-        padding: 3px 8px;
-        border-radius: 6px;
-        font-size: 11.5px;
-        font-weight: 700;
-    }
-    .badge-success {
-        background-color: #dcfce7;
-        color: #166534;
-        padding: 3px 8px;
-        border-radius: 6px;
-        font-size: 11.5px;
-        font-weight: 700;
-    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -279,6 +254,32 @@ CRITERIA = [
     {"domain": "المادة العلمية", "id": 24, "text": "يراعي التدرج والتسلسل المنطقي للمادة والانتقال الصحيح", "max": 4},
     {"domain": "المادة العلمية", "id": 25, "text": "يظهر تمكناً من المادة العلمية التي يقدمها", "max": 12},
 ]
+
+# -------------------------------------------------------------
+# دالة تصدير تقرير شامل عن المدارس (Excel متعدد الصفحات)
+# -------------------------------------------------------------
+def generate_schools_master_report(status_df, unvisited_df, monthly_pivot_df, sups_df):
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        if not status_df.empty:
+            status_df.to_excel(writer, sheet_name='حالة تغطية وانقطاع المدارس', index=False)
+        if not unvisited_df.empty:
+            unvisited_df.to_excel(writer, sheet_name='مدارس لم تتم زيارتها', index=False)
+        if not monthly_pivot_df.empty:
+            monthly_pivot_df.to_excel(writer, sheet_name='توزيع الزيارات الشهري', index=True)
+        if not sups_df.empty:
+            sups_df.to_excel(writer, sheet_name='إحصائيات نشاط الموجهين', index=False)
+            
+    # تنسيق اتجاه الأوراق من اليمين لليسار
+    output.seek(0)
+    wb = openpyxl.load_workbook(output)
+    for ws in wb.worksheets:
+        ws.views.sheetView[0].rightToLeft = True
+    
+    excel_final = io.BytesIO()
+    wb.save(excel_final)
+    excel_final.seek(0)
+    return excel_final.getvalue()
 
 # -------------------------------------------------------------
 # دالة HTML الرسمية للطباعة والحفظ كـ PDF
@@ -453,7 +454,7 @@ def get_evaluation_html(eval_data):
     return html
 
 # -------------------------------------------------------------
-# دالة توليد استمارة Excel الرسمية
+# دالة توليد استمارة Excel الرسمية للتقييم الفردي
 # -------------------------------------------------------------
 def generate_evaluation_excel_form(eval_data):
     wb = openpyxl.Workbook()
@@ -648,7 +649,7 @@ with c_out:
         st.rerun()
 
 # -------------------------------------------------------------
-# 0. لوحة المؤشرات والمتابعة الذكية للأدمن (Admin Dashboard)
+# 0. لوحة المؤشرات والمتابعة وتصدير تقارير المدارس (Admin)
 # -------------------------------------------------------------
 if choice == "📊 لوحة المؤشرات والمتابعة" and st.session_state.user["role"] == "Admin":
     st.markdown("### 📊 لوحة المتابعة الميدانية وخريطة الزيارات")
@@ -659,13 +660,100 @@ if choice == "📊 لوحة المؤشرات والمتابعة" and st.session_
     users_df = pd.read_sql_query("SELECT * FROM users WHERE role='Supervisor'", conn)
     conn.close()
     
-    # 1. بطاقات الإحصاءات العامة
     total_schools_count = len(schools_df)
     visited_schools_set = set(evals_df["school_name"].unique()) if not evals_df.empty else set()
     visited_count = len(visited_schools_set)
     unvisited_count = total_schools_count - visited_count
     total_visits = len(evals_df)
     
+    # حساب بيانات حالة وتغطية المدارس
+    school_status_data = []
+    today_date = date.today()
+    
+    for _, sc in schools_df.iterrows():
+        s_name = sc['name']
+        sc_evals = evals_df[evals_df['school_name'] == s_name]
+        
+        if not sc_evals.empty:
+            sc_evals_copy = sc_evals.copy()
+            sc_evals_copy['v_date'] = pd.to_datetime(sc_evals_copy['visit_date'], errors='coerce')
+            latest_date = sc_evals_copy['v_date'].max()
+            
+            if pd.notnull(latest_date):
+                days_diff = (pd.Timestamp(today_date) - latest_date).days
+                latest_str = latest_date.strftime('%Y-%m-%d')
+            else:
+                days_diff = 0
+                latest_str = "غير محدد"
+                
+            status_desc = f"منذ {days_diff} يوم"
+            if days_diff > 30:
+                status_desc = f"تنبيه انقطاع ({days_diff} يوم)"
+            if days_diff > 60:
+                status_desc = f"انقطاع حرج ({days_diff} يوم)"
+                
+            school_status_data.append({
+                "المدرسة": s_name,
+                "النوع": sc['gender'],
+                "الموقع": sc['location'],
+                "عدد الزيارات الكلية": len(sc_evals),
+                "تاريخ آخر زيارة": latest_str,
+                "عدد أيام الانقطاع": days_diff,
+                "حالة الانقطاع": status_desc
+            })
+            
+    status_df = pd.DataFrame(school_status_data)
+    unvisited_df = schools_df[~schools_df['name'].isin(visited_schools_set)][["name", "gender", "location"]].rename(
+        columns={"name": "اسم المدرسة", "gender": "النوع", "location": "الموقع"}
+    )
+    
+    if not evals_df.empty:
+        evals_df['v_dt'] = pd.to_datetime(evals_df['visit_date'], errors='coerce')
+        evals_df['الشهر-السنة'] = evals_df['v_dt'].dt.strftime('%m-%Y')
+        monthly_pivot = pd.pivot_table(
+            evals_df, values='id', index='school_name', columns='الشهر-السنة', aggfunc='count', fill_value=0
+        )
+        monthly_pivot.index.name = "اسم المدرسة"
+    else:
+        monthly_pivot = pd.DataFrame()
+
+    sup_counts = evals_df['supervisor_name'].value_counts().reset_index() if not evals_df.empty else pd.DataFrame(columns=['supervisor_name', 'count'])
+    sup_counts.columns = ['اسم الموجه', 'عدد الزيارات المنجزة']
+    all_sups = users_df[['full_name', 'specialization']].rename(columns={'full_name': 'اسم الموجه', 'specialization': 'التخصص'})
+    sups_summary_df = pd.merge(all_sups, sup_counts, on='اسم الموجه', how='left').fillna(0)
+    sups_summary_df['عدد الزيارات المنجزة'] = sups_summary_df['عدد الزيارات المنجزة'].astype(int)
+
+    # ------------------ قسم تصدير التقرير الشامل ------------------
+    st.markdown("<div class='mobile-card'>", unsafe_allow_html=True)
+    st.markdown("#### 📥 تصدير تقرير رقابي شامل عن المدارس")
+    st.caption("تقرير Excel منسق يتضمن إحصائيات التغطية، زمن الانقطاع، والزيارات الشهرية لكل مدرسة.")
+    
+    excel_master_report_bytes = generate_schools_master_report(status_df, unvisited_df, monthly_pivot, sups_summary_df)
+    
+    col_dl1, col_dl2 = st.columns(2)
+    with col_dl1:
+        st.download_button(
+            label="📊 تحميل التقرير الشامل للمدارس (Excel)",
+            data=excel_master_report_bytes,
+            file_name=f"تقرير_متابعة_المدارس_الشرعية_{date.today()}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            type="primary",
+            use_container_width=True
+        )
+    with col_dl2:
+        out_evals_excel = io.BytesIO()
+        with pd.ExcelWriter(out_evals_excel, engine='openpyxl') as writer:
+            evals_df.to_excel(writer, index=False, sheet_name='سجل التقييمات الكامل')
+        st.download_button(
+            label="📑 تحميل سجل التقييمات الخام (Excel)",
+            data=out_evals_excel.getvalue(),
+            file_name=f"سجل_التقييمات_الكامل_{date.today()}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            use_container_width=True
+        )
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    # بطاقات الإحصاءات العامة
     m1, m2, m3, m4 = st.columns(4)
     with m1:
         st.markdown(f"<div class='mobile-card' style='text-align: center;'><div style='color:#64748b; font-size:12px;'>إجمالي المدارس</div><div style='font-size:24px; font-weight:800; color:#0f172a;'>{total_schools_count}</div></div>", unsafe_allow_html=True)
@@ -683,115 +771,43 @@ if choice == "📊 لوحة المؤشرات والمتابعة" and st.session_
         "👥 نشاط الموجهين"
     ])
 
-    # تبويب 1: المدارس المزارة وزمن الانقطاع
     with tab_vis:
-        if evals_df.empty:
+        if status_df.empty:
             st.info("لا توجد زيارات مسجلة حتى الآن.")
         else:
-            school_status_data = []
-            today_date = date.today()
-            
-            for _, sc in schools_df.iterrows():
-                s_name = sc['name']
-                sc_evals = evals_df[evals_df['school_name'] == s_name]
-                
-                if not sc_evals.empty:
-                    # تحويل التواريخ لحساب أحدث تاريخ
-                    sc_evals_copy = sc_evals.copy()
-                    sc_evals_copy['v_date'] = pd.to_datetime(sc_evals_copy['visit_date'], errors='coerce')
-                    latest_date = sc_evals_copy['v_date'].max()
-                    
-                    if pd.notnull(latest_date):
-                        days_diff = (pd.Timestamp(today_date) - latest_date).days
-                        latest_str = latest_date.strftime('%Y-%m-%d')
-                    else:
-                        days_diff = 0
-                        latest_str = "غير محدد"
-                        
-                    status_badge = "badge-success"
-                    status_desc = f"منذ {days_diff} يوم"
-                    if days_diff > 30:
-                        status_badge = "badge-warning"
-                        status_desc = f"⚠️ منقطعة منذ {days_diff} يوم"
-                    if days_diff > 60:
-                        status_badge = "badge-danger"
-                        status_desc = f"🚨 انقطاع حرج ({days_diff} يوم)"
-                        
-                    school_status_data.append({
-                        "المدرسة": s_name,
-                        "النوع": sc['gender'],
-                        "الموقع": sc['location'],
-                        "عدد الزيارات": len(sc_evals),
-                        "آخر زيارة": latest_str,
-                        "زمن الانقطاع": status_desc
-                    })
-                    
-            status_df = pd.DataFrame(school_status_data)
             st.dataframe(status_df, use_container_width=True)
 
-    # تبويب 2: مدارس لم تتم زيارتها قط
     with tab_unvis:
-        unvisited_schools = schools_df[~schools_df['name'].isin(visited_schools_set)]
-        if unvisited_schools.empty:
+        if unvisited_df.empty:
             st.success("🎉 رائع! تم تغطية وزيارة جميع المدارس المسجلة في النظام.")
         else:
-            st.warning(f"⚠️ يوجد ({len(unvisited_schools)}) مدرسة لم يقم أي موجه بزيارتها حتى الآن:")
-            st.dataframe(unvisited_schools[["name", "gender", "location"]].rename(columns={"name": "اسم المدرسة", "gender": "النوع", "location": "الموقع"}), use_container_width=True)
+            st.warning(f"⚠️ يوجد ({len(unvisited_df)}) مدرسة لم يقم أي موجه بزيارتها حتى الآن:")
+            st.dataframe(unvisited_df, use_container_width=True)
 
-    # تبويب 3: الزيارات الشهرية لكل مدرسة
     with tab_monthly:
-        if evals_df.empty:
+        if monthly_pivot.empty:
             st.info("لا توجد بيانات متاحة.")
         else:
-            evals_df['v_dt'] = pd.to_datetime(evals_df['visit_date'], errors='coerce')
-            evals_df['الشهر-السنة'] = evals_df['v_dt'].dt.strftime('%m-%Y')
-            
-            # جدول محوري: عدد الزيارات لكل مدرسة في كل شهر
-            pivot_table = pd.pivot_table(
-                evals_df,
-                values='id',
-                index='school_name',
-                columns='الشهر-السنة',
-                aggfunc='count',
-                fill_value=0
-            )
-            pivot_table.index.name = "اسم المدرسة"
             st.markdown("#### 📊 جدول الزيارات الشهرية لكل مدرسة:")
-            st.dataframe(pivot_table, use_container_width=True)
+            st.dataframe(monthly_pivot, use_container_width=True)
 
-    # تبويب 4: نشاط الموجهين
     with tab_sups:
         st.markdown("#### 👥 عدد الزيارات والتقييمات المنجزة لكل موجه:")
-        if not evals_df.empty:
-            sup_counts = evals_df['supervisor_name'].value_counts().reset_index()
-            sup_counts.columns = ['اسم الموجه', 'عدد الزيارات المنجزة']
-            
-            # دمج مع قائمة الموجهين كاملة لإظهار من لم يزر بعد
-            all_sups = users_df[['full_name', 'specialization']].rename(columns={'full_name': 'اسم الموجه', 'specialization': 'التخصص'})
-            merged_sups = pd.merge(all_sups, sup_counts, on='اسم الموجه', how='left').fillna(0)
-            merged_sups['عدد الزيارات المنجزة'] = merged_sups['عدد الزيارات المنجزة'].astype(int)
-            merged_sups = merged_sups.sort_values(by='عدد الزيارات المنجزة', ascending=False)
-            
-            st.dataframe(merged_sups, use_container_width=True)
-        else:
-            st.info("لا توجد تقييمات منجزة بعد.")
+        st.dataframe(sups_summary_df.sort_values(by='عدد الزيارات المنجزة', ascending=False), use_container_width=True)
 
 # -------------------------------------------------------------
 # 1. شاشة استمارة تقييم جديدة بنظام التبويبات الجمالية
 # -------------------------------------------------------------
 elif choice == "📝 استمارة تقييم":
     
-    # تهيئة درجات البنود
     for item in CRITERIA:
         k = f"q_val_{item['id']}"
         if k not in st.session_state:
             st.session_state[k] = item['max']
 
-    # حساب المجموع والتقدير لحظياً
     total_live = sum(st.session_state[f"q_val_{item['id']}"] for item in CRITERIA)
     rating_live = "ممتاز" if total_live >= 90 else "جيد جداً" if total_live >= 80 else "جيد" if total_live >= 70 else "مقبول" if total_live >= 50 else "ضعيف"
 
-    # بطاقة النتيجة الحية العائمة
     st.markdown(f"""
     <div class='score-banner'>
         <div style='font-size: 12px; opacity: 0.9;'>المجموع الكلي المباشر</div>
@@ -884,7 +900,6 @@ elif choice == "📝 استمارة تقييم":
                 saved_media = []
                 drive_links = []
                 
-                # رفع الشواهد المرفقة إلى جوجل درايف
                 if uploaded_files:
                     os.makedirs("uploads", exist_ok=True)
                     for f in uploaded_files:
@@ -910,7 +925,6 @@ elif choice == "📝 استمارة تقييم":
                     "suggestions": suggestions
                 }
                 
-                # إنشاء ورفع استمارة الإكسل الرسمية إلى درايف
                 with st.spinner("جاري إنشاء ورفع تقرير الإكسل الرسمي..."):
                     excel_bytes = generate_evaluation_excel_form(eval_data_dict)
                     excel_filename = f"استمارة_{teacher_name}_{visit_date}.xlsx"
@@ -1060,7 +1074,6 @@ elif choice == "⚙️ إدارة النظام" and st.session_state.user["role"
     st.markdown("### ⚙️ إدارة النظام والمستخدمين والمدارس")
     admin_tab1, admin_tab2 = st.tabs(["👥 إدارة الموجهين والحسابات", "🏫 إدارة المدارس"])
     
-    # ------------------ تبويب 1: إدارة الموجهين ------------------
     with admin_tab1:
         conn = sqlite3.connect("evaluation_system.db")
         users_df = pd.read_sql_query("SELECT id, username, full_name, specialization, role FROM users", conn)
@@ -1142,7 +1155,6 @@ elif choice == "⚙️ إدارة النظام" and st.session_state.user["role"
                         except sqlite3.IntegrityError:
                             st.error("❌ اسم المستخدم موجود مسبقاً.")
 
-    # ------------------ تبويب 2: إدارة وتعديل المدارس ------------------
     with admin_tab2:
         conn = sqlite3.connect("evaluation_system.db")
         schools_all = pd.read_sql_query("SELECT id, name, gender, location FROM schools", conn)
