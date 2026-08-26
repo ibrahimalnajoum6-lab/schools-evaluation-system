@@ -6,6 +6,7 @@ import json
 import io
 import base64
 import requests
+import threading
 from datetime import date, datetime
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
@@ -35,7 +36,7 @@ def upload_file_to_drive(file_bytes, filename, school_name, visit_date_obj, mime
             "monthYear": month_folder_name
         }
         
-        response = requests.post(APPS_SCRIPT_URL, json=payload, timeout=30)
+        response = requests.post(APPS_SCRIPT_URL, json=payload, timeout=20)
         res_data = response.json()
         
         if res_data.get("status") == "success":
@@ -62,16 +63,44 @@ def auto_backup_database_to_drive():
     except Exception:
         pass
 
+def background_upload_task(eval_id, eval_data_dict, uploaded_files_data, school_name, visit_date):
+    """مهمة معالجة خلفية لرفع الملفات والنسخ دون تجميد واجهة المستخدم"""
+    try:
+        drive_links = []
+        excel_bytes = generate_evaluation_excel_form(eval_data_dict)
+        excel_link = upload_file_to_drive(
+            excel_bytes, f"استمارة_{eval_data_dict['teacher_name']}_{visit_date}.xlsx", school_name, visit_date,
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        if excel_link:
+            drive_links.append(excel_link)
+
+        for f_name, f_bytes, f_type in uploaded_files_data:
+            link = upload_file_to_drive(f_bytes, f_name, school_name, visit_date, f_type)
+            if link:
+                drive_links.append(link)
+
+        if drive_links:
+            conn = sqlite3.connect("evaluation_system.db")
+            c = conn.cursor()
+            c.execute("UPDATE evaluations SET drive_links=? WHERE id=?", (",".join(drive_links), eval_id))
+            conn.commit()
+            conn.close()
+
+        auto_backup_database_to_drive()
+    except Exception:
+        pass
+
 def delete_evaluation_by_id(eval_id):
     conn = sqlite3.connect("evaluation_system.db")
     c = conn.cursor()
     c.execute("DELETE FROM evaluations WHERE id=?", (eval_id,))
     conn.commit()
     conn.close()
-    auto_backup_database_to_drive()
+    threading.Thread(target=auto_backup_database_to_drive).start()
 
 # -------------------------------------------------------------
-# إعداد الصفحة وتكبير الخطوط والأيقونات والأزرار لتسهيل الاستخدام
+# إعداد الصفحة وتصميم التبويبات الجمالية
 # -------------------------------------------------------------
 st.set_page_config(
     page_title="منظومة تقييم المدارس الشرعية",
@@ -315,7 +344,7 @@ def calculate_domain_scores(scores_dict):
     return dom_totals
 
 # -------------------------------------------------------------
-# دالة HTML الرسمية (تم تصحيح الأقواس لتفادي خطأ f-string)
+# دالة HTML الرسمية
 # -------------------------------------------------------------
 def get_evaluation_html(eval_data):
     scores = json.loads(eval_data['scores_json']) if isinstance(eval_data['scores_json'], str) else eval_data['scores_json']
@@ -911,7 +940,7 @@ elif choice == "📑 التقرير التركيبي السنوي" and st.sessio
         )
 
 # -------------------------------------------------------------
-# 2. شاشة استمارة تقييم جديدة مع القوائم المنسدلة للدرجات
+# 2. شاشة استمارة تقييم جديدة (الحفظ الفوري + الرفع الخلفي)
 # -------------------------------------------------------------
 elif choice == "📝 استمارة تقييم جديدة":
     
@@ -920,11 +949,11 @@ elif choice == "📝 استمارة تقييم جديدة":
         st.markdown(f"""
         <div class='success-box'>
             <div style='font-size: 38px;'>✅</div>
-            <div style='font-size: 22px; font-weight: 900; margin-bottom: 6px;'>تم رفع وحفظ البيانات بنجاح!</div>
-            <div style='font-size: 16px;'>تم اعتماد تقييم المدرس: <b>{last['teacher']}</b></div>
+            <div style='font-size: 22px; font-weight: 900; margin-bottom: 6px;'>تم حفظ واعتماد الاستمارة بنجاح!</div>
+            <div style='font-size: 16px;'>تم تسجيل تقييم المدرس: <b>{last['teacher']}</b></div>
             <div style='font-size: 14px; opacity: 0.9;'>المؤسسة: {last['school']} | الدرجة: {last['score']}/100 ({last['rating']})</div>
             <div style='font-size: 13px; margin-top: 8px; background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 10px; display: inline-block;'>
-                📁 تم رفع الاستمارة والشواهد إلى Google Drive
+                ⚡️ جاري رفع الشواهد والإكسل إلى Google Drive في الخلفية
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -1033,74 +1062,73 @@ elif choice == "📝 استمارة تقييم جديدة":
         uploaded_files = st.file_uploader("📷 رفع شواهد وصور / فيديو من الهاتف", accept_multiple_files=True)
         st.markdown("</div>", unsafe_allow_html=True)
 
-        if st.button("💾 اعتماد وحفظ الاستمارة ورفع الملفات إلى جوجل درايف", type="primary", use_container_width=True):
+        if st.button("💾 حفظ واعتماد الاستمارة فوراً", type="primary", use_container_width=True):
             if not teacher_name.strip():
                 st.error("⚠️ يرجى إدخال اسم المدرس في تبويب البيانات الأساسية.")
             else:
                 final_scores_dict = {str(item['id']): st.session_state[f"q_val_{item['id']}"] for item in CRITERIA}
-                saved_media = []
-                drive_links = []
                 
-                with st.spinner("جاري رفع البيانات والشواهد السحابية..."):
-                    if uploaded_files:
-                        os.makedirs("uploads", exist_ok=True)
-                        for f in uploaded_files:
-                            f_bytes = f.getbuffer()
-                            path = os.path.join("uploads", f.name)
-                            with open(path, "wb") as file_out:
-                                file_out.write(f_bytes)
-                            saved_media.append(path)
-                            link = upload_file_to_drive(f.getvalue(), f.name, school_name, visit_date, f.type)
-                            if link: drive_links.append(link)
+                # حفظ الملفات محلياً للرفع الخلفي
+                saved_media = []
+                uploaded_files_data = []
+                if uploaded_files:
+                    os.makedirs("uploads", exist_ok=True)
+                    for f in uploaded_files:
+                        f_bytes = f.getbuffer()
+                        path = os.path.join("uploads", f.name)
+                        with open(path, "wb") as file_out:
+                            file_out.write(f_bytes)
+                        saved_media.append(path)
+                        uploaded_files_data.append((f.name, f.getvalue(), f.type))
 
-                    eval_data_dict = {
-                        "committee_no": committee_no, "visit_date": str(visit_date), "academic_year": academic_year,
-                        "semester": semester, "school_name": school_name, "gender_type": gender_type,
-                        "supervisor_name": supervisor_name, "teacher_name": teacher_name, "subject": subject,
-                        "specialization": specialization, "student_count": student_count, "grade_level": grade_level,
-                        "section": section, "lesson_topic": lesson_topic, "job_status": job_status,
-                        "experience": experience, "scores_json": json.dumps(final_scores_dict), "total_score": total_live,
-                        "rating": rating_live, "excellence_points": excellence_points, "dev_points": dev_points,
-                        "suggestions": suggestions
-                    }
-                    
-                    excel_bytes = generate_evaluation_excel_form(eval_data_dict)
-                    excel_link = upload_file_to_drive(
-                        excel_bytes, f"استمارة_{teacher_name}_{visit_date}.xlsx", school_name, visit_date,
-                        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-                    )
-                    if excel_link: drive_links.append(excel_link)
+                eval_data_dict = {
+                    "committee_no": committee_no, "visit_date": str(visit_date), "academic_year": academic_year,
+                    "semester": semester, "school_name": school_name, "gender_type": gender_type,
+                    "supervisor_name": supervisor_name, "teacher_name": teacher_name, "subject": subject,
+                    "specialization": specialization, "student_count": student_count, "grade_level": grade_level,
+                    "section": section, "lesson_topic": lesson_topic, "job_status": job_status,
+                    "experience": experience, "scores_json": json.dumps(final_scores_dict), "total_score": total_live,
+                    "rating": rating_live, "excellence_points": excellence_points, "dev_points": dev_points,
+                    "suggestions": suggestions
+                }
 
-                    conn = sqlite3.connect("evaluation_system.db")
-                    c = conn.cursor()
-                    c.execute('''INSERT INTO evaluations (
-                        committee_no, visit_date, academic_year, semester, school_name, gender_type,
-                        supervisor_name, teacher_name, subject, specialization, student_count,
-                        grade_level, section, lesson_topic, job_status, experience,
-                        scores_json, total_score, rating, excellence_points, dev_points, suggestions,
-                        media_paths, drive_links, status
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''', (
-                        committee_no, str(visit_date), academic_year, semester, school_name, gender_type,
-                        supervisor_name, teacher_name, subject, specialization, student_count,
-                        grade_level, section, lesson_topic, job_status, experience,
-                        json.dumps(final_scores_dict), total_live, rating_live, excellence_points, dev_points, suggestions,
-                        ",".join(saved_media), ",".join(drive_links), "معتمد"
-                    ))
-                    conn.commit()
-                    conn.close()
-                    
-                    auto_backup_database_to_drive()
-                    
-                    st.session_state.last_saved_eval = {
-                        "teacher": teacher_name,
-                        "school": school_name,
-                        "score": total_live,
-                        "rating": rating_live
-                    }
-                    st.rerun()
+                # 1. الحفظ الفوري اللحظي في SQLite
+                conn = sqlite3.connect("evaluation_system.db")
+                c = conn.cursor()
+                c.execute('''INSERT INTO evaluations (
+                    committee_no, visit_date, academic_year, semester, school_name, gender_type,
+                    supervisor_name, teacher_name, subject, specialization, student_count,
+                    grade_level, section, lesson_topic, job_status, experience,
+                    scores_json, total_score, rating, excellence_points, dev_points, suggestions,
+                    media_paths, drive_links, status
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''', (
+                    committee_no, str(visit_date), academic_year, semester, school_name, gender_type,
+                    supervisor_name, teacher_name, subject, specialization, student_count,
+                    grade_level, section, lesson_topic, job_status, experience,
+                    json.dumps(final_scores_dict), total_live, rating_live, excellence_points, dev_points, suggestions,
+                    ",".join(saved_media), "", "معتمد"
+                ))
+                new_eval_id = c.lastrowid
+                conn.commit()
+                conn.close()
+
+                # 2. تشغيل الرفع السحابي في خيط خلفي غير متزامن لتفادي أي تأخير
+                threading.Thread(
+                    target=background_upload_task,
+                    args=(new_eval_id, eval_data_dict, uploaded_files_data, school_name, visit_date)
+                ).start()
+
+                # 3. إظهار رسالة النجاح فوراً
+                st.session_state.last_saved_eval = {
+                    "teacher": teacher_name,
+                    "school": school_name,
+                    "score": total_live,
+                    "rating": rating_live
+                }
+                st.rerun()
 
 # -------------------------------------------------------------
-# 3. سجل الزيارات وتصفية المدارس بحسب النوع (ذكور / إناث)
+# 3. سجل الزيارات وتصفية المدارس بحسب النوع
 # -------------------------------------------------------------
 elif choice == "🔍 سجل الزيارات والتصدير":
     st.markdown("### 🔍 سجل الزيارات واستمارات التقييم")
@@ -1239,7 +1267,7 @@ elif choice == "🔍 سجل الزيارات والتصدير":
                             ))
                         conn.commit()
                         conn.close()
-                        auto_backup_database_to_drive()
+                        threading.Thread(target=auto_backup_database_to_drive).start()
                         st.success("✅ تم تحديث الاستمارة والنسخة الاحتياطية بنجاح!")
                         st.rerun()
 
@@ -1394,7 +1422,7 @@ elif choice == "⚙️ إدارة النظام والحماية" and st.session_
                     c.execute("UPDATE users SET username=?, password=?, full_name=?, specialization=?, role=? WHERE id=?", (e_uname, e_pword, e_fname, e_spec, e_role, selected_u_id))
                     conn.commit()
                     conn.close()
-                    auto_backup_database_to_drive()
+                    threading.Thread(target=auto_backup_database_to_drive).start()
                     st.success("تم التحديث بنجاح")
                     st.rerun()
 
@@ -1416,6 +1444,6 @@ elif choice == "⚙️ إدارة النظام والحماية" and st.session_
                         c.execute("INSERT INTO schools (name, gender, location) VALUES (?, ?, ?)", (ns_name, ns_gen, ns_loc))
                         conn.commit()
                         conn.close()
-                        auto_backup_database_to_drive()
+                        threading.Thread(target=auto_backup_database_to_drive).start()
                         st.success("تمت إضافة المدرسة بنجاح")
                         st.rerun()
