@@ -30,20 +30,18 @@ def upload_file_to_drive(file_bytes, filename, school_name, visit_date_obj, mime
             "monthYear": month_folder_name
         }
         
-        response = requests.post(APPS_SCRIPT_URL, json=payload, timeout=30)
+        response = requests.post(APPS_SCRIPT_URL, json=payload, timeout=25)
         res_data = response.json()
         
         if res_data.get("status") == "success":
             return res_data.get("url")
         else:
-            st.error(f"خطأ أثناء الرفع إلى درايف: {res_data.get('message')}")
             return None
-    except Exception as e:
-        st.error(f"فشل الاتصال برابط الرفع: {e}")
+    except Exception:
         return None
 
 # -------------------------------------------------------------
-# إعداد الصفحة وتجاوبها المحترف مع الجوال (Mobile-First CSS)
+# إعداد الصفحة وتجاوبها المحترف والسلس مع الجوال
 # -------------------------------------------------------------
 st.set_page_config(
     page_title="منظومة تقييم المدارس الشرعية",
@@ -60,120 +58,78 @@ st.markdown("""
         direction: rtl;
         text-align: right;
         font-family: 'Tajawal', sans-serif !important;
+        scroll-behavior: smooth;
     }
     
-    /* إخفاء القائمة الجانبية تماماً لمنع التداخل والتشوه على الجوال */
-    [data-testid="stSidebar"] {
-        display: none !important;
-    }
-    [data-testid="stSidebarCollapseButton"], [data-testid="collapsedControl"] {
-        display: none !important;
-    }
-    
-    /* إخفاء رأس صفحة ستريمليت وشريط الأدوات */
-    header[data-testid="stHeader"] {
+    /* إخفاء القوائم الجانبية والرأسية لتجربة تطبيق جوال أصيلة */
+    [data-testid="stSidebar"], [data-testid="stSidebarCollapseButton"], [data-testid="collapsedControl"], header[data-testid="stHeader"] {
         display: none !important;
     }
     
-    /* ضبط هوامش الصفحة لتناسب شاشة الهاتف بالكامل */
     .block-container {
-        padding-top: 1rem !important;
-        padding-bottom: 2rem !important;
-        padding-left: 0.8rem !important;
-        padding-right: 0.8rem !important;
+        padding: 0.8rem !important;
         max-width: 100% !important;
     }
     
+    /* بطاقات أنيقة وسلسة */
     .mobile-card {
         background-color: #ffffff;
         border-radius: 14px;
-        padding: 16px;
-        margin-bottom: 14px;
-        border: 1px solid #eef2f6;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+        padding: 14px;
+        margin-bottom: 12px;
+        border: 1px solid #edf2f7;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.03);
     }
     
     .score-banner {
-        background: linear-gradient(135deg, #0d5c3a 0%, #178a58 100%);
+        background: linear-gradient(135deg, #0d5c3a 0%, #167a4e 100%);
         color: white;
-        border-radius: 16px;
-        padding: 16px;
+        border-radius: 14px;
+        padding: 14px;
         text-align: center;
-        box-shadow: 0 6px 18px rgba(13,92,58,0.25);
-        margin-bottom: 18px;
+        box-shadow: 0 4px 14px rgba(13,92,58,0.2);
+        margin-bottom: 14px;
+    }
+    
+    .criterion-card {
+        background: #f8fafc;
+        border-right: 4px solid #0d5c3a;
+        border-radius: 8px;
+        padding: 10px 12px;
+        margin-bottom: 8px;
     }
     
     .stButton > button {
-        border-radius: 12px !important;
+        border-radius: 10px !important;
         font-weight: 700 !important;
-        font-size: 15px !important;
-        padding: 12px 18px !important;
-    }
-    
-    .criterion-box {
-        background-color: #f8fafc;
-        border-right: 4px solid #0d5c3a;
-        border-radius: 8px;
-        padding: 12px;
-        margin-bottom: 10px;
+        padding: 10px 16px !important;
+        transition: all 0.2s ease;
     }
 </style>
 """, unsafe_allow_html=True)
 
 # -------------------------------------------------------------
-# قاعدة البيانات والتهيئة
+# قاعدة البيانات
 # -------------------------------------------------------------
 def init_db():
     conn = sqlite3.connect("evaluation_system.db")
     c = conn.cursor()
-    
     c.execute('''CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT UNIQUE,
-        password TEXT,
-        full_name TEXT,
-        specialization TEXT,
-        role TEXT
+        id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE, password TEXT, full_name TEXT, specialization TEXT, role TEXT
     )''')
-    
     c.execute('''CREATE TABLE IF NOT EXISTS schools (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT,
-        gender TEXT,
-        location TEXT
+        id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, gender TEXT, location TEXT
     )''')
-    
     c.execute('''CREATE TABLE IF NOT EXISTS evaluations (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        committee_no TEXT,
-        visit_date TEXT,
-        academic_year TEXT,
-        semester TEXT,
-        school_name TEXT,
-        gender_type TEXT,
-        supervisor_name TEXT,
-        teacher_name TEXT,
-        subject TEXT,
-        specialization TEXT,
-        student_count INTEGER,
-        grade_level TEXT,
-        section TEXT,
-        lesson_topic TEXT,
-        job_status TEXT,
-        experience TEXT,
-        scores_json TEXT,
-        total_score INTEGER,
-        rating TEXT,
-        excellence_points TEXT,
-        dev_points TEXT,
-        suggestions TEXT,
-        media_paths TEXT,
-        drive_links TEXT,
-        status TEXT
+        id INTEGER PRIMARY KEY AUTOINCREMENT, committee_no TEXT, visit_date TEXT, academic_year TEXT, semester TEXT,
+        school_name TEXT, gender_type TEXT, supervisor_name TEXT, teacher_name TEXT, subject TEXT,
+        specialization TEXT, student_count INTEGER, grade_level TEXT, section TEXT, lesson_topic TEXT,
+        job_status TEXT, experience TEXT, scores_json TEXT, total_score INTEGER, rating TEXT,
+        excellence_points TEXT, dev_points TEXT, suggestions TEXT, media_paths TEXT, drive_links TEXT, status TEXT
     )''')
     
     c.execute("PRAGMA table_info(evaluations)")
-    columns = [column[1] for column in c.fetchall()]
+    columns = [col[1] for col in c.fetchall()]
     if "drive_links" not in columns:
         c.execute("ALTER TABLE evaluations ADD COLUMN drive_links TEXT")
 
@@ -273,7 +229,7 @@ CRITERIA = [
 ]
 
 # -------------------------------------------------------------
-# دالة استخراج استمارة HTML المطابقة للطباعة كـ PDF
+# دالة HTML الرسمية للطباعة والحفظ كـ PDF
 # -------------------------------------------------------------
 def get_evaluation_html(eval_data):
     scores = json.loads(eval_data['scores_json']) if isinstance(eval_data['scores_json'], str) else eval_data['scores_json']
@@ -285,15 +241,15 @@ def get_evaluation_html(eval_data):
         
         domain_td = ""
         if i_id == 1:
-            domain_td = '<td rowspan="6" style="text-align: center; font-weight: bold; vertical-align: middle; background-color: #fcfcfc;">التخطيط</td>'
+            domain_td = '<td rowspan="6" style="text-align: center; font-weight: bold; vertical-align: middle; background-color: #f9f9f9;">التخطيط</td>'
         elif i_id == 7:
-            domain_td = '<td rowspan="7" style="text-align: center; font-weight: bold; vertical-align: middle; background-color: #fcfcfc;">تنفيذ الدرس</td>'
+            domain_td = '<td rowspan="7" style="text-align: center; font-weight: bold; vertical-align: middle; background-color: #f9f9f9;">تنفيذ الدرس</td>'
         elif i_id == 14:
-            domain_td = '<td rowspan="4" style="text-align: center; font-weight: bold; vertical-align: middle; background-color: #fcfcfc;">إدارة الصف</td>'
+            domain_td = '<td rowspan="4" style="text-align: center; font-weight: bold; vertical-align: middle; background-color: #f9f9f9;">إدارة الصف</td>'
         elif i_id == 18:
-            domain_td = '<td rowspan="2" style="text-align: center; font-weight: bold; vertical-align: middle; background-color: #fcfcfc;">شخصية المعلم</td>'
+            domain_td = '<td rowspan="2" style="text-align: center; font-weight: bold; vertical-align: middle; background-color: #f9f9f9;">شخصية المعلم</td>'
         elif i_id == 20:
-            domain_td = '<td rowspan="6" style="text-align: center; font-weight: bold; vertical-align: middle; background-color: #fcfcfc;">المادة العلمية</td>'
+            domain_td = '<td rowspan="6" style="text-align: center; font-weight: bold; vertical-align: middle; background-color: #f9f9f9;">المادة العلمية</td>'
 
         notes_td = ""
         if i_id == 1:
@@ -322,13 +278,8 @@ def get_evaluation_html(eval_data):
         <title>استمارة تقييم أداء المدرس</title>
         <style>
             @media print {{
-                body {{
-                    margin: 0;
-                    padding: 0;
-                }}
-                .no-print {{
-                    display: none !important;
-                }}
+                body {{ margin: 0; padding: 0; }}
+                .no-print {{ display: none !important; }}
             }}
             body {{
                 font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
@@ -336,43 +287,23 @@ def get_evaluation_html(eval_data):
                 text-align: right;
                 background-color: #fff;
                 color: #000;
-                padding: 10px;
+                padding: 8px;
             }}
-            table {{
-                width: 100%;
-                border-collapse: collapse;
-                margin-bottom: 4px;
-            }}
-            th, td {{
-                border: 1px solid #000;
-                padding: 2.5px 4px;
-            }}
-            .bg-gray {{
-                background-color: #f2f2f2;
-            }}
-            .header-tbl td {{
-                border: none;
-                font-weight: bold;
-            }}
+            table {{ width: 100%; border-collapse: collapse; margin-bottom: 4px; }}
+            th, td {{ border: 1px solid #000; padding: 2.5px 4px; }}
+            .bg-gray {{ background-color: #f2f2f2; }}
+            .header-tbl td {{ border: none; font-weight: bold; }}
             .btn-print {{
-                background-color: #0d5c3a;
-                color: white;
-                padding: 10px 20px;
-                border: none;
-                border-radius: 6px;
-                cursor: pointer;
-                font-size: 14px;
-                font-weight: bold;
-                margin-bottom: 12px;
-                width: 100%;
+                background-color: #0d5c3a; color: white; padding: 10px 16px;
+                border: none; border-radius: 6px; cursor: pointer;
+                font-size: 14px; font-weight: bold; margin-bottom: 10px; width: 100%;
             }}
         </style>
     </head>
     <body>
         <div class="no-print">
-            <button class="btn-print" onclick="window.print()">🖨️ اضغط هنا لطباعة الاستمارة أو الحفظ كملف PDF</button>
+            <button class="btn-print" onclick="window.print()">🖨️ اضغط هنا للطباعة أو الحفظ كـ PDF</button>
         </div>
-
         <table class="header-tbl">
             <tr>
                 <td style="width: 30%; text-align: right; font-size: 13px;">مديرية أوقاف حلب</td>
@@ -380,7 +311,6 @@ def get_evaluation_html(eval_data):
                 <td style="width: 30%; text-align: left; font-size: 13px;">رقم اللجنة: {eval_data['committee_no']}</td>
             </tr>
         </table>
-
         <table>
             <tr>
                 <td class="bg-gray" style="width: 15%; font-weight: bold;">التاريخ:</td>
@@ -425,7 +355,6 @@ def get_evaluation_html(eval_data):
                 <td>{eval_data['job_status']}</td>
             </tr>
         </table>
-
         <table>
             <thead>
                 <tr class="bg-gray" style="text-align: center; font-weight: bold; font-size: 11.5px;">
@@ -441,7 +370,6 @@ def get_evaluation_html(eval_data):
                 {rows_html}
             </tbody>
         </table>
-
         <table>
             <tr class="bg-gray" style="font-weight: bold; text-align: center; font-size: 12px;">
                 <td style="width: 50%;">مجموع الدرجات: {eval_data['total_score']} / 100</td>
@@ -453,7 +381,6 @@ def get_evaluation_html(eval_data):
                 </td>
             </tr>
         </table>
-
         <table style="border: none; margin-top: 12px;">
             <tr style="font-weight: bold; text-align: center;">
                 <td style="border: none; width: 25%;">المدرسة</td>
@@ -474,7 +401,7 @@ def get_evaluation_html(eval_data):
     return html
 
 # -------------------------------------------------------------
-# دالة Excel الرسمية
+# دالة توليد استمارة Excel الرسمية
 # -------------------------------------------------------------
 def generate_evaluation_excel_form(eval_data):
     wb = openpyxl.Workbook()
@@ -645,7 +572,7 @@ if st.session_state.user is None:
     st.stop()
 
 # -------------------------------------------------------------
-# الشريط العلوي والتنقل
+# الرأس وشريط التنقل العلوي السلس
 # -------------------------------------------------------------
 st.markdown(f"""
 <div style='display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; background: #fff; padding: 10px 14px; border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.04);'>
@@ -656,7 +583,7 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-menu_options = ["📝 تقييم جديد", "🔍 سجل الزيارات"]
+menu_options = ["📝 تقييم جديد", "🔍 سجل الزيارات والتعديل"]
 if st.session_state.user["role"] == "Admin":
     menu_options.append("⚙️ لوحة الإدارة")
 
@@ -673,131 +600,88 @@ with c_out:
 # -------------------------------------------------------------
 if choice == "📝 تقييم جديد":
     
-    for item in CRITERIA:
-        k = f"q_{item['id']}"
-        if k not in st.session_state:
-            st.session_state[k] = item['max']
-
-    total_live = sum(st.session_state[f"q_{item['id']}"] for item in CRITERIA)
-    rating_live = "ممتاز" if total_live >= 90 else "جيد جداً" if total_live >= 80 else "جيد" if total_live >= 70 else "مقبول" if total_live >= 50 else "ضعيف"
-    
-    st.markdown(f"""
-    <div class='score-banner'>
-        <div style='font-size: 13px; opacity: 0.9;'>المجموع الكلي المباشر</div>
-        <div style='font-size: 32px; font-weight: 800; margin: 4px 0;'>{total_live} <span style='font-size: 16px; font-weight: 500;'>/ 100</span></div>
-        <div style='display: inline-block; background: rgba(255,255,255,0.25); padding: 3px 12px; border-radius: 20px; font-size: 13px; font-weight: 700;'>
-            التقدير: {rating_live}
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-
-    with st.expander("📌 البيانات الأساسية للزيارة", expanded=True):
+    with st.form("new_eval_form"):
+        st.markdown("#### 📌 البيانات الأساسية للزيارة")
+        
         conn = sqlite3.connect("evaluation_system.db")
-        schools_df = pd.read_sql_query("SELECT name, gender FROM schools", conn)
+        schools_df = pd.read_sql_query("SELECT name FROM schools", conn)
         conn.close()
-        
-        gender_type = st.radio("نوع المدرسة", ["ذكور", "إناث"], horizontal=True)
-        filtered_schools = schools_df[schools_df['gender'] == gender_type]['name'].tolist()
-        school_name = st.selectbox("المدرسة", filtered_schools if filtered_schools else ["لا توجد مدارس"])
-        
-        c_t1, c_t2 = st.columns(2)
-        with c_t1:
+        schools_list = schools_df['name'].tolist() if not schools_df.empty else ["لا توجد مدارس"]
+
+        c1, c2 = st.columns(2)
+        with c1:
+            school_name = st.selectbox("المدرسة", schools_list)
             teacher_name = st.text_input("اسم المدرس *")
             subject = st.text_input("المادة", value=st.session_state.user["specialization"])
-        with c_t2:
             grade_level = st.selectbox("الصف", ["السابع", "الثامن", "التاسع", "العاشر", "الحادي عشر", "الثالث الثانوي"])
             section = st.text_input("الشعبة", value="الأولى")
+        with c2:
+            gender_type = st.selectbox("نوع المدرسة", ["ذكور", "إناث"])
+            visit_date = st.date_input("تاريخ الزيارة", value=date.today())
+            academic_year = st.selectbox("العام الدراسي", ["2026 - 2027", "2025 - 2026"])
+            semester = st.selectbox("الفصل الدراسي", ["الفصل الأول", "الفصل الثاني"])
+            committee_no = st.text_input("رقم اللجنة", value="1")
 
         lesson_topic = st.text_input("موضوع الدرس")
         
-        with st.expander("بيانات إضافية (اختياري)"):
-            c_e1, c_e2 = st.columns(2)
-            with c_e1:
-                visit_date = st.date_input("تاريخ الزيارة", value=date.today())
-                academic_year = st.selectbox("العام الدراسي", ["2026 - 2027", "2025 - 2026"])
-                semester = st.selectbox("الفصل الدراسي", ["الفصل الأول", "الفصل الثاني"])
-                committee_no = st.text_input("رقم اللجنة", value="1")
-            with c_e2:
-                specialization = st.text_input("الاختصاص")
-                student_count = st.number_input("عدد الطلاب", min_value=1, value=25)
-                job_status = st.selectbox("الوضع الوظيفي", ["أصيل", "وكيل", "مكلف"])
-                experience = st.text_input("الخبرة", value="5 سنوات")
+        c3, c4 = st.columns(2)
+        with c3:
+            specialization = st.text_input("الاختصاص", value=st.session_state.user["specialization"])
+            student_count = st.number_input("عدد الطلاب", min_value=1, value=25)
+        with c4:
+            job_status = st.selectbox("الوضع الوظيفي", ["أصيل", "وكيل", "مكلف"])
+            experience = st.text_input("الخبرة", value="5 سنوات")
 
-    st.markdown("#### 📋 بنود التقييم حسب المجال")
-    tabs = st.tabs(DOMAINS)
-    
-    for idx, domain in enumerate(DOMAINS):
-        with tabs[idx]:
-            domain_items = [i for i in CRITERIA if i['domain'] == domain]
-            for item in domain_items:
-                st.markdown(f"""
-                <div class='criterion-box'>
-                    <div style='font-weight: 700; font-size: 14px; color: #1e293b;'>{item['id']}. {item['text']}</div>
-                    <div style='font-size: 12px; color: #64748b;'>الدرجة القصوى المستحقة: ({item['max']})</div>
-                </div>
-                """, unsafe_allow_html=True)
-                
-                scores_options = list(range(item['max'] + 1))
-                st.select_slider(
-                    f"درجة بند {item['id']}",
-                    options=scores_options,
-                    value=st.session_state[f"q_{item['id']}"],
-                    key=f"slider_{item['id']}",
-                    on_change=lambda i=item['id']: st.session_state.update({f"q_{i}": st.session_state[f"slider_{i}"]}),
-                    label_visibility="collapsed"
+        st.markdown("---")
+        st.markdown("#### 📊 بنود التقييم الـ 25")
+        
+        form_scores = {}
+        for d in DOMAINS:
+            st.markdown(f"**🔹 مجال: {d}**")
+            d_items = [i for i in CRITERIA if i['domain'] == d]
+            for it in d_items:
+                form_scores[str(it['id'])] = st.number_input(
+                    f"{it['id']}. {it['text']} (من {it['max']})",
+                    min_value=0, max_value=it['max'], value=it['max'],
+                    key=f"new_sc_{it['id']}"
                 )
 
-    st.markdown("#### ✍️ الملاحظات والشواهد")
-    with st.container():
-        excellence_points = st.text_area("🌟 نقاط التميز", placeholder="اكتب نقاط القوة والتميز...")
-        dev_points = st.text_area("💡 نقاط التطوير", placeholder="اكتب نقاط التحسين والتطوير...")
-        suggestions = st.text_area("📌 المقترحات والتوصيات", placeholder="المقترحات والتوجيهات...")
+        st.markdown("---")
+        st.markdown("#### ✍️ الملاحظات")
+        excellence_points = st.text_area("🌟 نقاط التميز")
+        dev_points = st.text_area("💡 نقاط التطوير")
+        suggestions = st.text_area("📌 المقترحات والتوصيات")
         
-        uploaded_files = st.file_uploader("📷 رفع شواهد وصور من الكاميرا / المعرض", accept_multiple_files=True)
+        submit_btn = st.form_submit_button("💾 حفظ الاستمارة وإرسالها", type="primary", use_container_width=True)
 
-    if st.button("💾 حفظ الاستمارة ورفع الملفات إلى جوجل درايف", type="primary", use_container_width=True):
+    if submit_btn:
         if not teacher_name.strip():
-            st.error("⚠️ يرجى إدخال اسم المدرس أولاً.")
+            st.error("⚠️ يرجى إدخال اسم المدرس.")
         else:
-            final_scores = {str(item['id']): st.session_state[f"q_{item['id']}"] for item in CRITERIA}
-            saved_media = []
-            drive_links = []
-            
-            if uploaded_files:
-                os.makedirs("uploads", exist_ok=True)
-                for f in uploaded_files:
-                    f_bytes = f.getbuffer()
-                    path = os.path.join("uploads", f.name)
-                    with open(path, "wb") as file_out:
-                        file_out.write(f_bytes)
-                    saved_media.append(path)
-                    
-                    with st.spinner(f"جاري رفع {f.name}..."):
-                        link = upload_file_to_drive(f.getvalue(), f.name, school_name, visit_date, f.type)
-                        if link:
-                            drive_links.append(link)
+            total_calc = sum(form_scores.values())
+            rating_calc = "ممتاز" if total_calc >= 90 else "جيد جداً" if total_calc >= 80 else "جيد" if total_calc >= 70 else "مقبول" if total_calc >= 50 else "ضعيف"
 
             eval_data_dict = {
                 "committee_no": committee_no, "visit_date": str(visit_date), "academic_year": academic_year,
                 "semester": semester, "school_name": school_name, "gender_type": gender_type,
                 "supervisor_name": st.session_state.user["name"], "teacher_name": teacher_name, "subject": subject,
-                "specialization": specialization if specialization else subject, "student_count": student_count, "grade_level": grade_level,
+                "specialization": specialization, "student_count": student_count, "grade_level": grade_level,
                 "section": section, "lesson_topic": lesson_topic, "job_status": job_status,
-                "experience": experience, "scores_json": json.dumps(final_scores), "total_score": total_live,
-                "rating": rating_live, "excellence_points": excellence_points, "dev_points": dev_points,
+                "experience": experience, "scores_json": json.dumps(form_scores), "total_score": total_calc,
+                "rating": rating_calc, "excellence_points": excellence_points, "dev_points": dev_points,
                 "suggestions": suggestions
             }
             
-            with st.spinner("جاري إنشاء ورفع تقرير الإكسل الرسمي إلى درايف..."):
-                excel_bytes = generate_evaluation_excel_form(eval_data_dict)
-                excel_filename = f"استمارة_{teacher_name}_{visit_date}.xlsx"
-                excel_link = upload_file_to_drive(
-                    excel_bytes, excel_filename, school_name, visit_date,
-                    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-                )
-                if excel_link:
-                    drive_links.append(excel_link)
-            
+            drive_links = []
+            excel_bytes = generate_evaluation_excel_form(eval_data_dict)
+            excel_filename = f"استمارة_{teacher_name}_{visit_date}.xlsx"
+            excel_link = upload_file_to_drive(
+                excel_bytes, excel_filename, school_name, visit_date,
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            )
+            if excel_link:
+                drive_links.append(excel_link)
+
             conn = sqlite3.connect("evaluation_system.db")
             c = conn.cursor()
             c.execute('''INSERT INTO evaluations (
@@ -808,20 +692,21 @@ if choice == "📝 تقييم جديد":
                 media_paths, drive_links, status
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''', (
                 committee_no, str(visit_date), academic_year, semester, school_name, gender_type,
-                st.session_state.user["name"], teacher_name, subject, eval_data_dict["specialization"], student_count,
+                st.session_state.user["name"], teacher_name, subject, specialization, student_count,
                 grade_level, section, lesson_topic, job_status, experience,
-                json.dumps(final_scores), total_live, rating_live, excellence_points, dev_points, suggestions,
-                ",".join(saved_media), ",".join(drive_links), "معتمد"
+                json.dumps(form_scores), total_calc, rating_calc, excellence_points, dev_points, suggestions,
+                "", ",".join(drive_links), "معتمد"
             ))
             conn.commit()
             conn.close()
-            st.success(f"✅ تم حفظ الاستمارة ورفع ملفاتها إلى مجلد ({school_name} / {visit_date.month}-{visit_date.year}) في جوجل درايف بنجاح!")
+            st.success(f"✅ تم حفظ الاستمارة بنجاح! المجموع: ({total_calc}/100 - {rating_calc})")
+            st.rerun()
 
 # -------------------------------------------------------------
-# 2. سجل الزيارات والمعاينة والطباعة (PDF & Excel)
+# 2. سجل الزيارات والمعاينة والتعديل بعد الإرسال للموجهين
 # -------------------------------------------------------------
-elif choice == "🔍 سجل الزيارات":
-    st.markdown("### 🔍 سجل الزيارات والتقارير الرسمية")
+elif choice == "🔍 سجل الزيارات والتعديل":
+    st.markdown("### 🔍 سجل الزيارات واستمارات التقييم")
     
     conn = sqlite3.connect("evaluation_system.db")
     if st.session_state.user["role"] == "Admin":
@@ -831,9 +716,9 @@ elif choice == "🔍 سجل الزيارات":
     conn.close()
     
     if df.empty:
-        st.info("لا توجد استمارات مسجلة حتى الآن.")
+        st.info("لا توجد استمارات مسجلة بعد.")
     else:
-        search_txt = st.text_input("🔍 بحث باسم المدرس أو المدرسة", placeholder="اكتب للبحث السريع...")
+        search_txt = st.text_input("🔍 بحث سريع باسم المدرس أو المدرسة", placeholder="اكتب للبحث...")
         filtered_df = df.copy()
         if search_txt:
             filtered_df = filtered_df[
@@ -842,10 +727,9 @@ elif choice == "🔍 سجل الزيارات":
             ]
 
         for _, row in filtered_df.iterrows():
-            with st.expander(f"📄 {row['teacher_name']} — {row['school_name']} ({row['total_score']} / 100)"):
-                st.write(f"**المادة:** {row['subject']} | **الصف:** {row['grade_level']}")
-                st.write(f"**التاريخ:** {row['visit_date']} | **التقدير:** {row['rating']}")
-                st.write(f"**الموجه:** {row['supervisor_name']}")
+            with st.expander(f"📄 {row['teacher_name']} — {row['school_name']} ({row['total_score']} / 100 - {row['rating']})"):
+                st.write(f"**المادة:** {row['subject']} | **الصف:** {row['grade_level']} | **التاريخ:** {row['visit_date']}")
+                st.write(f"**المسؤول العلمي / الموجه:** {row['supervisor_name']}")
                 
                 rec_dict = row.to_dict()
                 
@@ -860,20 +744,62 @@ elif choice == "🔍 سجل الزيارات":
                     key=f"dl_{row['id']}"
                 )
                 
-                # معاينة وطباعة الاستمارة الرسمية كـ PDF
-                st.markdown("---")
-                st.markdown("#### 🖨️ معاينة وطباعة الاستمارة كـ PDF")
-                html_preview = get_evaluation_html(rec_dict)
-                components.html(html_preview, height=800, scrolling=True)
+                # ----------------- تعديل الاستمارة بعد الإرسال -----------------
+                with st.expander("✏️ تعديل بيانات الاستمارة والدرجات"):
+                    with st.form(f"edit_eval_form_{row['id']}"):
+                        e_tname = st.text_input("اسم المدرس", value=row["teacher_name"])
+                        e_subj = st.text_input("المادة", value=row["subject"])
+                        e_topic = st.text_input("موضوع الدرس", value=row["lesson_topic"])
+                        
+                        col_e1, col_e2 = st.columns(2)
+                        with col_e1:
+                            e_cnt = st.number_input("عدد الطلاب", value=int(row["student_count"]))
+                            e_sec = st.text_input("الشعبة", value=row["section"])
+                        with col_e2:
+                            e_status = st.selectbox("الوضع الوظيفي", ["أصيل", "وكيل", "مكلف"], index=["أصيل", "وكيل", "مكلف"].index(row["job_status"]))
+                            e_exp = st.text_input("الخبرة", value=row["experience"])
+                        
+                        st.markdown("**تعديل درجات البنود الـ 25:**")
+                        curr_scores = json.loads(row["scores_json"]) if isinstance(row["scores_json"], str) else row["scores_json"]
+                        updated_scores = {}
+                        
+                        for it in CRITERIA:
+                            val_now = int(curr_scores.get(str(it['id']), it['max']))
+                            updated_scores[str(it['id'])] = st.number_input(
+                                f"{it['id']}. {it['text']} (من {it['max']})",
+                                min_value=0, max_value=it['max'], value=val_now,
+                                key=f"edit_sc_{row['id']}_{it['id']}"
+                            )
+                            
+                        e_exc = st.text_area("نقاط التميز", value=row["excellence_points"])
+                        e_dev = st.text_area("نقاط التطوير", value=row["dev_points"])
+                        e_sug = st.text_area("المقترحات", value=row["suggestions"])
+                        
+                        if st.form_submit_button("💾 حفظ وتحديث التعديلات", type="primary", use_container_width=True):
+                            new_tot = sum(updated_scores.values())
+                            new_rat = "ممتاز" if new_tot >= 90 else "جيد جداً" if new_tot >= 80 else "جيد" if new_tot >= 70 else "مقبول" if new_tot >= 50 else "ضعيف"
+                            
+                            conn = sqlite3.connect("evaluation_system.db")
+                            c = conn.cursor()
+                            c.execute('''UPDATE evaluations SET 
+                                teacher_name=?, subject=?, lesson_topic=?, student_count=?, section=?, job_status=?, experience=?,
+                                scores_json=?, total_score=?, rating=?, excellence_points=?, dev_points=?, suggestions=?
+                                WHERE id=?''', (
+                                    e_tname, e_subj, e_topic, e_cnt, e_sec, e_status, e_exp,
+                                    json.dumps(updated_scores), new_tot, new_rat, e_exc, e_dev, e_sug, row["id"]
+                                ))
+                            conn.commit()
+                            conn.close()
+                            st.success("✅ تم تحديث الاستمارة والدرجات بنجاح!")
+                            st.rerun()
 
-                if row.get("drive_links"):
-                    st.markdown("📂 **روابط الملفات على Google Drive:**")
-                    for i, link in enumerate(str(row["drive_links"]).split(','), 1):
-                        if link.strip():
-                            st.markdown(f"- [عرض الملف {i} على درايف]({link.strip()})")
+                # معاينة وطباعة الاستمارة الرسمية كـ PDF
+                with st.expander("🖨️ عرض وطباعة الاستمارة كـ PDF"):
+                    html_preview = get_evaluation_html(rec_dict)
+                    components.html(html_preview, height=750, scrolling=True)
 
 # -------------------------------------------------------------
-# 3. لوحة الإدارة الكاملة (تعديل أي موجه أو مدرسة أو دور)
+# 3. لوحة الإدارة الكاملة (Admin)
 # -------------------------------------------------------------
 elif choice == "⚙️ لوحة الإدارة":
     st.markdown("### ⚙️ إدارة النظام والمستخدمين والمدارس")
@@ -887,7 +813,6 @@ elif choice == "⚙️ لوحة الإدارة":
         
         st.dataframe(users_df, use_container_width=True)
         
-        # تعديل بيانات موجه محدد أو تغيير دوره وكلمة سره
         st.markdown("#### ✏️ تعديل بيانات مستخدم / موجه")
         selected_u_id = st.selectbox(
             "اختر المستخدم المراد تعديله",
@@ -926,18 +851,18 @@ elif choice == "⚙️ لوحة الإدارة":
                         st.success(f"✅ تم تحديث بيانات ({e_fname}) بنجاح!")
                         st.rerun()
                     except sqlite3.IntegrityError:
-                        st.error("❌ اسم المستخدم هذا موجود بالفعل، يرجى اختيار اسم مستخدم آخر.")
+                        st.error("❌ اسم المستخدم هذا موجود بالفعل.")
 
                 if del_u_btn:
                     if selected_u_id == st.session_state.user["id"]:
-                        st.error("⚠️ لا يمكنك حذف الحساب المسجل به دخولك حالياً!")
+                        st.error("⚠️ لا يمكنك حذف حسابك الحالي!")
                     else:
                         conn = sqlite3.connect("evaluation_system.db")
                         c = conn.cursor()
                         c.execute("DELETE FROM users WHERE id=?", (selected_u_id,))
                         conn.commit()
                         conn.close()
-                        st.warning("🗑️ تم حذف المستخدم بنجاح.")
+                        st.warning("🗑️ تم حذف المستخدم.")
                         st.rerun()
 
         st.markdown("---")
@@ -1010,7 +935,7 @@ elif choice == "⚙️ لوحة الإدارة":
                     c.execute("DELETE FROM schools WHERE id=?", (selected_s_id,))
                     conn.commit()
                     conn.close()
-                    st.warning("🗑️ تم حذف المدرسة من القائمة.")
+                    st.warning("🗑️ تم حذف المدرسة.")
                     st.rerun()
 
         st.markdown("---")
