@@ -99,7 +99,7 @@ def delete_evaluation_by_id(eval_id):
     threading.Thread(target=auto_backup_database_to_drive).start()
 
 # -------------------------------------------------------------
-# إعداد الصفحة وتصاميم الـ CSS وإخفاء الشارة بالكامل عبر JavaScript
+# إعداد الصفحة وتصاميم الـ CSS وإخفاء الشارة وقائمة الإعدادات نهائياً
 # -------------------------------------------------------------
 st.set_page_config(
     page_title="منظومة تقييم المدارس الشرعية",
@@ -121,20 +121,25 @@ st.markdown("""
         font-size: 16px;
     }
     
+    /* إخفاء القائمة العلوية والشريط الجانبي وشارة التطبيق بالكامل */
     [data-testid="stSidebar"], [data-testid="stSidebarCollapseButton"], [data-testid="collapsedControl"], header[data-testid="stHeader"] {
         display: none !important;
     }
     
     #MainMenu, footer, header {visibility: hidden !important; display: none !important;}
+    
     div[class*="viewerBadge"], 
     [data-testid="stStatusWidget"],
     .viewerBadge_container__1QSob,
-    a[href*="streamlit.io"] {
+    a[href*="streamlit.io"],
+    footer,
+    #root > div:last-child {
         display: none !important;
         visibility: hidden !important;
         opacity: 0 !important;
         pointer-events: none !important;
         height: 0px !important;
+        max-height: 0px !important;
     }
     
     .block-container {
@@ -207,7 +212,6 @@ st.markdown("""
         box-shadow: 0 2px 8px rgba(0,0,0,0.03);
     }
     
-    /* توحيد تصميم جميع أزرار التطبيق لتطابق زر الخروج */
     .stButton > button {
         border-radius: 12px !important;
         font-weight: 700 !important;
@@ -226,11 +230,6 @@ st.markdown("""
         border-color: #94a3b8 !important;
         color: #0d5c3a !important;
     }
-
-    /* تخصيص الأزرار الرئيسية البارزة */
-    .stButton > button[kind="primary"], .stButton > button[data-baseweb="button"] {
-        /* سيتم تطبيق التنسيق العام الموحد لجميع الأزرار لتأخذ نفس مظهر زر الخروج بناءً على طلبك */
-    }
     
     input, select, textarea {
         font-size: 16px !important;
@@ -243,17 +242,25 @@ st.markdown("""
 </style>
 
 <script>
-    function removeBranding() {
-        const elements = document.querySelectorAll('*');
-        elements.forEach(el => {
-            if (el.innerText && (el.innerText.includes('Created by') || el.innerText.includes('Made with Streamlit'))) {
-                el.style.display = 'none';
+    function removeBrandingCompletely() {
+        // إزالة أي عناصر تحتوي على شارة أو علامة Streamlit أو Created by
+        const allElements = document.querySelectorAll('*');
+        allElements.forEach(el => {
+            if (el.children.length === 0 && el.innerText) {
+                if (el.innerText.includes('Created by') || el.innerText.includes('Made with Streamlit') || el.innerText.includes('Hosted with')) {
+                    el.style.display = 'none';
+                    if (el.parentElement) el.parentElement.style.display = 'none';
+                }
             }
         });
-        const badges = document.querySelectorAll('div[class*="viewerBadge"], a[href*="streamlit.io"]');
-        badges.forEach(b => b.remove());
+        
+        // إزالة شارات الشاشة العائمة والشارات الجانبية بدقة
+        const badges = document.querySelectorAll('div[class*="viewerBadge"], a[href*="streamlit.io"], footer, header');
+        badges.forEach(b => {
+            b.remove();
+        });
     }
-    setInterval(removeBranding, 500);
+    setInterval(removeBrandingCompletely, 300);
 </script>
 """, unsafe_allow_html=True)
 
@@ -287,7 +294,7 @@ def init_db():
         supervisors = [
             ("admin", "admin123", "مدير التعليم الشرعي", "إدارة", "Admin"),
             ("ibrahim", "123456", "إبراهيم احمد النجوم", "لغة إنكليزية", "Supervisor"),
-            ("m_shabo", "123456", "محمود مصطفى المصطفى الشعبو", "شريعة", "Supervisor"),
+            ("m_shabo", "123456", "محمد مصطفى المصطفى الشعبو", "شريعة", "Supervisor"),
             ("shadi_h", "123456", "شادي أحمد حلاق", "شريعة", "Supervisor"),
             ("m_hout", "123456", "محمد حسن الحوت", "شريعة", "Supervisor"),
             ("abdullah_a", "123456", "عبد الله عارف", "شريعة", "Supervisor"),
