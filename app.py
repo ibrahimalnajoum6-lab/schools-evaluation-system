@@ -207,13 +207,29 @@ st.markdown("""
         box-shadow: 0 2px 8px rgba(0,0,0,0.03);
     }
     
+    /* توحيد تصميم جميع أزرار التطبيق لتطابق زر الخروج */
     .stButton > button {
-        border-radius: 14px !important;
-        font-weight: 800 !important;
-        font-size: 17px !important;
-        padding: 14px 22px !important;
-        min-height: 52px !important;
-        box-shadow: 0 3px 8px rgba(0,0,0,0.08) !important;
+        border-radius: 12px !important;
+        font-weight: 700 !important;
+        font-size: 15px !important;
+        padding: 8px 16px !important;
+        min-height: 42px !important;
+        background-color: #ffffff !important;
+        color: #334155 !important;
+        border: 1px solid #cbd5e1 !important;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.03) !important;
+        transition: all 0.2s ease !important;
+    }
+    
+    .stButton > button:hover {
+        background-color: #f1f5f9 !important;
+        border-color: #94a3b8 !important;
+        color: #0d5c3a !important;
+    }
+
+    /* تخصيص الأزرار الرئيسية البارزة */
+    .stButton > button[kind="primary"], .stButton > button[data-baseweb="button"] {
+        /* سيتم تطبيق التنسيق العام الموحد لجميع الأزرار لتأخذ نفس مظهر زر الخروج بناءً على طلبك */
     }
     
     input, select, textarea {
@@ -227,7 +243,6 @@ st.markdown("""
 </style>
 
 <script>
-    // كود جافاسكريبت لحذف الشارة أو عبارة Created by فور تحميل الصفحة
     function removeBranding() {
         const elements = document.querySelectorAll('*');
         elements.forEach(el => {
@@ -771,7 +786,7 @@ if st.session_state.user is None:
         u_pass = st.text_input("كلمة المرور", type="password", placeholder="••••••")
         
         st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
-        if st.button("🔑 تسجيل الدخول", type="primary", use_container_width=True):
+        if st.button("🔑 تسجيل الدخول", use_container_width=True):
             user_data = login(u_name, u_pass)
             if user_data:
                 st.session_state.user = {
@@ -967,7 +982,6 @@ elif choice == "📑 التقرير التركيبي السنوي" and st.sessio
             data=report_excel_bytes,
             file_name=f"التقرير_التركيبي_السنوي_للتعليم_الشرعي_{date.today()}.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            type="primary",
             use_container_width=True
         )
 
@@ -989,7 +1003,7 @@ elif choice == "📝 استمارة تقييم جديدة":
             </div>
         </div>
         """, unsafe_allow_html=True)
-        if st.button("➕ تعبئة استمارة جديدة أخرى", type="secondary", use_container_width=True):
+        if st.button("➕ تعبئة استمارة جديدة أخرى", use_container_width=True):
             st.session_state.last_saved_eval = None
             st.rerun()
 
@@ -1094,7 +1108,7 @@ elif choice == "📝 استمارة تقييم جديدة":
         uploaded_files = st.file_uploader("📷 رفع شواهد وصور / فيديو من الهاتف", accept_multiple_files=True)
         st.markdown("</div>", unsafe_allow_html=True)
 
-        if st.button("💾 حفظ واعتماد الاستمارة فوراً", type="primary", use_container_width=True):
+        if st.button("💾 حفظ واعتماد الاستمارة فوراً", use_container_width=True):
             if not teacher_name.strip():
                 st.error("⚠️ يرجى إدخال اسم المدرس في تبويب البيانات الأساسية.")
             else:
@@ -1174,7 +1188,7 @@ elif choice == "🔍 سجل الزيارات والتصدير":
         with st.expander("🗑️ قسم حذف استمارة محددة فوراً", expanded=False):
             delete_candidates = df.apply(lambda r: f"ID: {r['id']} | المدرس: {r['teacher_name']} | المدرسة: {r['school_name']} | التاريخ: {r['visit_date']}", axis=1).tolist()
             del_selection = st.selectbox("اختر الاستمارة المطلوب حذفها:", delete_candidates, key="del_select_box")
-            if st.button("🗑️ تأكيد حذف هذه الاستمارة الآن", type="secondary", use_container_width=True):
+            if st.button("🗑️ تأكيد حذف هذه الاستمارة الآن", use_container_width=True):
                 selected_del_id = int(del_selection.split("|")[0].replace("ID:", "").strip())
                 delete_evaluation_by_id(selected_del_id)
                 st.success(f"✅ تم حذف الاستمارة رقم {selected_del_id} بنجاح!")
@@ -1217,7 +1231,6 @@ elif choice == "🔍 سجل الزيارات والتصدير":
                                 data=direct_pdf,
                                 file_name=f"استمارة_{row['teacher_name']}_{row['visit_date']}.pdf",
                                 mime="application/pdf",
-                                type="primary",
                                 use_container_width=True,
                                 key=f"dl_pdf_{eval_id}"
                             )
@@ -1274,7 +1287,7 @@ elif choice == "🔍 سجل الزيارات والتصدير":
                     
                     e_files = st.file_uploader("📷 رفع شواهد إضافية", accept_multiple_files=True, key=f"ef_{eval_id}")
 
-                    if st.button("💾 حفظ وتحديث التعديلات", type="primary", use_container_width=True, key=f"btn_edit_{eval_id}"):
+                    if st.button("💾 حفظ وتحديث التعديلات", use_container_width=True, key=f"btn_edit_{eval_id}"):
                         new_tot = sum(updated_scores.values())
                         new_rat = "ممتاز" if new_tot >= 90 else "جيد جداً" if new_tot >= 80 else "جيد" if new_tot >= 70 else "مقبول" if new_tot >= 50 else "ضعيف"
                         
@@ -1301,7 +1314,7 @@ elif choice == "🔍 سجل الزيارات والتصدير":
 
                 with sub_tab3:
                     st.error(f"تحذير: سيتم حذف استمارة المدرس ({row['teacher_name']}) في مدرسة ({row['school_name']}) بشكل دائم.")
-                    if st.button("🗑️ تأكيد حذف هذه الاستمارة نهائياً", type="primary", use_container_width=True, key=f"confirm_del_btn_{eval_id}"):
+                    if st.button("🗑️ تأكيد حذف هذه الاستمارة نهائياً", use_container_width=True, key=f"confirm_del_btn_{eval_id}"):
                         delete_evaluation_by_id(eval_id)
                         st.warning(f"🗑️ تم حذف استمارة ({row['teacher_name']}) بنجاح!")
                         st.rerun()
@@ -1404,7 +1417,7 @@ elif choice == "⚙️ إدارة النظام والحماية" and st.session_
         st.markdown("#### 🛡️ أمان البيانات والنسخ الاحتياطي السحابي")
         st.write("يقوم النظام تلقائياً برفع نسخة احتياطية من قاعدة البيانات `evaluation_system.db` إلى Google Drive عند كل عملية حفظ أو تعديل أو حذف.")
         
-        if st.button("🚀 إنشاء ورفع نسخة احتياطية فورية إلى Google Drive الآن", type="primary", use_container_width=True):
+        if st.button("🚀 إنشاء ورفع نسخة احتياطية فورية إلى Google Drive الآن", use_container_width=True):
             with st.spinner("جاري أخذ نسخة ورفعها لدرايف..."):
                 auto_backup_database_to_drive()
                 st.success("✅ تم رفع نسخة احتياطية حديثة إلى مجلد (النسخ_الاحتياطية_للنظام) في Google Drive بنجاح!")
