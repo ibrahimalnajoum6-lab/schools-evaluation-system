@@ -12,6 +12,7 @@ import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 import streamlit.components.v1 as components
 
+# معالجة آمنة لمكتبة weasyprint لضمان عدم توقف التطبيق على السحابة
 try:
     from weasyprint import HTML
     WEASYPRINT_AVAILABLE = True
@@ -243,7 +244,6 @@ st.markdown("""
 
 <script>
     function removeBrandingAndLinks() {
-        // إزالة أي عناصر تحتوي على شارات أو روابط جيثب أو ستريمليت
         const allElements = document.querySelectorAll('a, div');
         allElements.forEach(el => {
             if (el.innerText && (
