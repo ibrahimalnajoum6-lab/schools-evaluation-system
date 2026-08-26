@@ -11,7 +11,6 @@ import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 import streamlit.components.v1 as components
 
-# محاولة استيراد WeasyPrint للتوليد المباشر للـ PDF
 try:
     from weasyprint import HTML
     WEASYPRINT_AVAILABLE = True
@@ -24,7 +23,6 @@ except Exception:
 APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzbXt7ZJ1qjdnES24kGMDTYifU9MG3eKQRbH3nRu-QUz1Nk2cHvJnSVatZEd2noYARs/exec"
 
 def upload_file_to_drive(file_bytes, filename, school_name, visit_date_obj, mime_type='application/octet-stream'):
-    """رفع الملف مباشرة عبر Google Apps Script داخل: اسم المدرسة / الشهر-السنة"""
     try:
         month_folder_name = f"{visit_date_obj.month}-{visit_date_obj.year}"
         encoded_file = base64.b64encode(file_bytes).decode('utf-8')
@@ -48,7 +46,6 @@ def upload_file_to_drive(file_bytes, filename, school_name, visit_date_obj, mime
         return None
 
 def auto_backup_database_to_drive():
-    """نسخ احتياطي تلقائي لقاعدة البيانات إلى Google Drive"""
     try:
         db_path = "evaluation_system.db"
         if os.path.exists(db_path):
@@ -65,11 +62,19 @@ def auto_backup_database_to_drive():
     except Exception:
         pass
 
+def delete_evaluation_by_id(eval_id):
+    conn = sqlite3.connect("evaluation_system.db")
+    c = conn.cursor()
+    c.execute("DELETE FROM evaluations WHERE id=?", (eval_id,))
+    conn.commit()
+    conn.close()
+    auto_backup_database_to_drive()
+
 # -------------------------------------------------------------
-# إعداد الصفحة وتصميم التبويبات الجمالية والانسيابية
+# إعداد الصفحة وتصميم التبويبات الجمالية
 # -------------------------------------------------------------
 st.set_page_config(
-    page_title="استمارة تقييم",
+    page_title="منظومة تقييم المدارس الشرعية",
     page_icon="🕌",
     layout="centered",
     initial_sidebar_state="collapsed"
@@ -463,7 +468,6 @@ def get_evaluation_html(eval_data):
     return html
 
 def generate_direct_pdf_bytes(eval_data):
-    """توليد ملف PDF مباشر باستخدام WeasyPrint"""
     if not WEASYPRINT_AVAILABLE:
         return None
     try:
@@ -607,7 +611,7 @@ def generate_evaluation_excel_form(eval_data):
     return excel_buffer.getvalue()
 
 # -------------------------------------------------------------
-# دالة توليد التقرير التركيبي الفصلي / السنوي الشامل
+# دالة توليد التقرير التركيبي الفصلي / السنوي
 # -------------------------------------------------------------
 def generate_annual_executive_report(evals_df, schools_df, users_df):
     output = io.BytesIO()
@@ -621,8 +625,7 @@ def generate_annual_executive_report(evals_df, schools_df, users_df):
         for r in ["ممتاز", "جيد جداً", "جيد", "مقبول", "ضعيف"]:
             cnt = rating_counts.get(r, 0)
             pct = (cnt / len(evals_df) * 100) if len(evals_df) > 0 else 0
-            r_data_item = {"التقدير": r, "العدد": cnt, "النسبة المئوية": f"{pct:.1f}%"}
-            ratings_data.append(r_data_item)
+            ratings_data.append({"التقدير": r, "العدد": cnt, "النسبة المئوية": f"{pct:.1f}%"})
             
         summary_kpi_df = pd.DataFrame([
             {"المؤشر": "إجمالي عدد المدارس الشرعية", "القيمة": total_schools},
@@ -698,7 +701,7 @@ if st.session_state.user is None:
     st.stop()
 
 # -------------------------------------------------------------
-# الرأس وشريط التنقل العلوي المبوب
+# الرأس وشريط التنقل
 # -------------------------------------------------------------
 st.markdown(f"""
 <div style='display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; background: #fff; padding: 10px 14px; border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.04);'>
@@ -729,7 +732,7 @@ with c_out:
         st.rerun()
 
 # -------------------------------------------------------------
-# 0. لوحة المؤشرات وخريطة الزيارات ومقارنة المواد (Admin)
+# 0. لوحة المؤشرات (Admin)
 # -------------------------------------------------------------
 if choice == "📊 لوحة المؤشرات والمتابعة" and st.session_state.user["role"] == "Admin":
     st.markdown("### 📊 لوحة المتابعة الميدانية وخريطة الزيارات")
@@ -808,7 +811,6 @@ if choice == "📊 لوحة المؤشرات والمتابعة" and st.session_
             ).reset_index().rename(columns={'subject': 'المادة الدراسية'})
             subj_stats['متوسط_الدرجة'] = subj_stats['متوسط_الدرجة'].round(1)
             subj_stats = subj_stats.sort_values(by='متوسط_الدرجة', ascending=False)
-            
             st.dataframe(subj_stats, use_container_width=True)
             chart_subj = subj_stats[['المادة الدراسية', 'متوسط_الدرجة']].set_index('المادة الدراسية')
             st.bar_chart(chart_subj)
@@ -835,7 +837,7 @@ if choice == "📊 لوحة المؤشرات والمتابعة" and st.session_
             st.dataframe(merged_sups.sort_values(by='عدد الزيارات المنجزة', ascending=False), use_container_width=True)
 
 # -------------------------------------------------------------
-# 1. التقرير التركيبي الفصلي / السنوي الشامل (Admin)
+# 1. التقرير التركيبي السنوي (Admin)
 # -------------------------------------------------------------
 elif choice == "📑 التقرير التركيبي السنوي" and st.session_state.user["role"] == "Admin":
     st.markdown("### 📑 التقرير التركيبي الفصلي والسنوي المجمع")
@@ -1034,7 +1036,7 @@ elif choice == "📝 استمارة تقييم":
                 st.success(f"✅ تم حفظ الاستمارة ورفع الملفات وتحديث النسخة الاحتياطية بنجاح!")
 
 # -------------------------------------------------------------
-# 3. سجل الزيارات والمعاينة والتعديل والحذف وتصدير PDF المباشر
+# 3. سجل الزيارات والمعاينة والتعديل والحذف وتصدير PDF
 # -------------------------------------------------------------
 elif choice == "🔍 سجل الزيارات والتصدير":
     st.markdown("### 🔍 سجل الزيارات واستمارات التقييم")
@@ -1049,6 +1051,17 @@ elif choice == "🔍 سجل الزيارات والتصدير":
     if df.empty:
         st.info("لا توجد استمارات مسجلة حتى الآن.")
     else:
+        # قسم سريع للحذف المباشر بدون أخطاء
+        with st.expander("🗑️ قسم حذف استمارة محددة"):
+            delete_candidates = df.apply(lambda r: f"ID: {r['id']} | المدرس: {r['teacher_name']} | المدرسة: {r['school_name']} | التاريخ: {r['visit_date']}", axis=1).tolist()
+            del_selection = st.selectbox("اختر الاستمارة المطلوب حذفها:", delete_candidates, key="del_select_box")
+            if st.button("🗑️ حذف هذه الاستمارة فوراً", type="secondary", use_container_width=True):
+                selected_del_id = int(del_selection.split("|")[0].replace("ID:", "").strip())
+                delete_evaluation_by_id(selected_del_id)
+                st.success(f"✅ تم حذف الاستمارة رقم {selected_del_id} بنجاح!")
+                st.rerun()
+
+        st.markdown("---")
         search_txt = st.text_input("🔍 بحث سريع باسم المدرس أو المدرسة", placeholder="اكتب للبحث...")
         filtered_df = df.copy()
         if search_txt:
@@ -1065,7 +1078,7 @@ elif choice == "🔍 سجل الزيارات والتصدير":
                 
                 rec_dict = row.to_dict()
                 
-                sub_tab1, sub_tab2, sub_tab3 = st.tabs(["📥 تحميل الاستمارة (PDF / Excel)", "✏️ تعديل الاستمارة", "📂 روابط درايف"])
+                sub_tab1, sub_tab2, sub_tab3, sub_tab4 = st.tabs(["📥 تحميل (PDF / Excel)", "✏️ تعديل الاستمارة", "🗑️ حذف الاستمارة", "📂 درايف"])
                 
                 with sub_tab1:
                     c_btn_pdf, c_btn_xl = st.columns(2)
@@ -1131,9 +1144,6 @@ elif choice == "🔍 سجل الزيارات والتصدير":
                     
                     e_files = st.file_uploader("📷 رفع شواهد إضافية", accept_multiple_files=True, key=f"ef_{eval_id}")
 
-                    st.markdown("---")
-                    
-                    # زر الحفظ والتحديث
                     if st.button("💾 حفظ وتحديث التعديلات", type="primary", use_container_width=True, key=f"btn_edit_{eval_id}"):
                         new_tot = sum(updated_scores.values())
                         new_rat = "ممتاز" if new_tot >= 90 else "جيد جداً" if new_tot >= 80 else "جيد" if new_tot >= 70 else "مقبول" if new_tot >= 50 else "ضعيف"
@@ -1159,35 +1169,14 @@ elif choice == "🔍 سجل الزيارات والتصدير":
                         st.success("✅ تم تحديث الاستمارة والنسخة الاحتياطية بنجاح!")
                         st.rerun()
 
-                    # منطقة الحذف المباشرة والمفعلة
-                    confirm_delete_key = f"confirm_del_{eval_id}"
-                    if confirm_delete_key not in st.session_state:
-                        st.session_state[confirm_delete_key] = False
-
-                    if not st.session_state[confirm_delete_key]:
-                        if st.button("🗑️ حذف هذه الاستمارة", type="secondary", use_container_width=True, key=f"ask_del_{eval_id}"):
-                            st.session_state[confirm_delete_key] = True
-                            st.rerun()
-                    else:
-                        st.error(f"⚠️ هل أنت متأكد تماماً من حذف استمارة المدرس ({row['teacher_name']})؟")
-                        c_del_yes, c_del_no = st.columns(2)
-                        with c_del_yes:
-                            if st.button("✔️ نعم، حذف نهائي", type="primary", use_container_width=True, key=f"yes_del_{eval_id}"):
-                                conn = sqlite3.connect("evaluation_system.db")
-                                c = conn.cursor()
-                                c.execute("DELETE FROM evaluations WHERE id=?", (eval_id,))
-                                conn.commit()
-                                conn.close()
-                                auto_backup_database_to_drive()
-                                st.session_state[confirm_delete_key] = False
-                                st.warning(f"🗑️ تم حذف استمارة ({row['teacher_name']}) بنجاح!")
-                                st.rerun()
-                        with c_del_no:
-                            if st.button("✖️ إلغاء الأمر", use_container_width=True, key=f"no_del_{eval_id}"):
-                                st.session_state[confirm_delete_key] = False
-                                st.rerun()
-
                 with sub_tab3:
+                    st.error(f"تحذير: سيتم حذف استمارة المدرس ({row['teacher_name']}) في مدرسة ({row['school_name']}) بشكل دائم.")
+                    if st.button("🗑️ تأكيد حذف هذه الاستمارة نهائياً", type="primary", use_container_width=True, key=f"confirm_del_btn_{eval_id}"):
+                        delete_evaluation_by_id(eval_id)
+                        st.warning(f"🗑️ تم حذف استمارة ({row['teacher_name']}) بنجاح!")
+                        st.rerun()
+
+                with sub_tab4:
                     if row.get("drive_links"):
                         st.markdown("📂 **الملفات المحفوظة على Google Drive:**")
                         for i, link in enumerate(str(row["drive_links"]).split(','), 1):
