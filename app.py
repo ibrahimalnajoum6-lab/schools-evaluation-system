@@ -71,7 +71,7 @@ def delete_evaluation_by_id(eval_id):
     auto_backup_database_to_drive()
 
 # -------------------------------------------------------------
-# إعداد الصفحة وتكبير الخطوط والأيقونات والأزرار لتسهيل الاستخدام
+# إعداد الصفحة والأنماط البصرية
 # -------------------------------------------------------------
 st.set_page_config(
     page_title="منظومة تقييم المدارس الشرعية",
@@ -363,31 +363,31 @@ def get_evaluation_html(eval_data):
         <meta charset="utf-8">
         <title>استمارة تقييم أداء المدرس</title>
         <style>
-            @page {{
+            @page {
                 size: A4;
                 margin: 10mm;
-            }}
-            @media print {{
-                body {{ margin: 0; padding: 0; }}
-                .no-print {{ display: none !important; }}
-            }}
-            body {{
+            }
+            @media print {
+                body { margin: 0; padding: 0; }
+                .no-print { display: none !important; }
+            }
+            body {
                 font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
                 direction: rtl;
                 text-align: right;
                 background-color: #fff;
                 color: #000;
                 padding: 5px;
-            }}
-            table {{ width: 100%; border-collapse: collapse; margin-bottom: 4px; }}
-            th, td {{ border: 1px solid #000; padding: 2.5px 4px; }}
-            .bg-gray {{ background-color: #f2f2f2; }}
-            .header-tbl td {{ border: none; font-weight: bold; }}
-            .btn-print {{
+            }
+            table { width: 100%; border-collapse: collapse; margin-bottom: 4px; }
+            th, td { border: 1px solid #000; padding: 2.5px 4px; }
+            .bg-gray { background-color: #f2f2f2; }
+            .header-tbl td { border: none; font-weight: bold; }
+            .btn-print {
                 background-color: #0d5c3a; color: white; padding: 12px 18px;
                 border: none; border-radius: 8px; cursor: pointer;
                 font-size: 16px; font-weight: bold; margin-bottom: 12px; width: 100%;
-            }}
+            }
         </style>
     </head>
     <body>
@@ -911,11 +911,10 @@ elif choice == "📑 التقرير التركيبي السنوي" and st.sessio
         )
 
 # -------------------------------------------------------------
-# 2. شاشة استمارة تقييم جديدة مع زر فصل مدارس الذكور عن الإناث ورسالة النجاح
+# 2. شاشة استمارة تقييم جديدة مع القوائم المنسدلة للدرجات
 # -------------------------------------------------------------
 elif choice == "📝 استمارة تقييم جديدة":
     
-    # إظهار رسالة النجاح الكبيرة إذا تم حفظ استمارة للتو
     if "last_saved_eval" in st.session_state and st.session_state.last_saved_eval:
         last = st.session_state.last_saved_eval
         st.markdown(f"""
@@ -956,7 +955,6 @@ elif choice == "📝 استمارة تقييم جديدة":
     with tab_info:
         st.markdown("<div class='mobile-card'>", unsafe_allow_html=True)
         
-        # ----------------- زر فصل مدارس الذكور عن الإناث -----------------
         st.markdown("#### 🏫 تصنيف ونوع المدرسة:")
         gender_type = st.radio(
             "اختر نوع المدرسة لتصفية القائمة:",
@@ -967,7 +965,6 @@ elif choice == "📝 استمارة تقييم جديدة":
         )
         
         conn = sqlite3.connect("evaluation_system.db")
-        # استرجاع المدارس المصفاة حسب النوع المختار
         filtered_schools_df = pd.read_sql_query("SELECT name FROM schools WHERE gender=?", conn, params=(gender_type,))
         sups_all = pd.read_sql_query("SELECT full_name FROM users WHERE role='Supervisor'", conn)["full_name"].tolist()
         conn.close()
@@ -1012,16 +1009,21 @@ elif choice == "📝 استمارة تقييم جديدة":
                     st.markdown(f"""
                     <div class='criterion-item'>
                         <div style='font-weight: 800; font-size: 15px; color: #1e293b;'>{it['id']}. {it['text']}</div>
-                        <div style='font-size: 13px; color: #64748b;'>الدرجة القصوى: ({it['max']})</div>
+                        <div style='font-size: 13px; color: #64748b; margin-bottom: 4px;'>الدرجة القصوى المستحقة: ({it['max']} درجات)</div>
                     </div>
                     """, unsafe_allow_html=True)
-                    scores_options = list(range(it['max'] + 1))
-                    st.select_slider(
-                        f"درجة بند {it['id']}", options=scores_options, value=st.session_state[f"q_val_{it['id']}"],
-                        key=f"slider_val_{it['id']}",
-                        on_change=lambda i=it['id']: st.session_state.update({f"q_val_{i}": st.session_state[f"slider_val_{i}"]}),
-                        label_visibility="collapsed"
+                    
+                    scores_options = list(range(it['max'], -1, -1))
+                    
+                    st.selectbox(
+                        f"اختر درجة البند {it['id']}:",
+                        options=scores_options,
+                        index=scores_options.index(st.session_state[f"q_val_{it['id']}"]) if st.session_state[f"q_val_{it['id']}"] in scores_options else 0,
+                        key=f"select_val_{it['id']}",
+                        format_func=lambda x: f"⭐️ {x} من {it['max']}" if x == it['max'] else f"⚪️ {x} من {it['max']}",
+                        on_change=lambda i=it['id']: st.session_state.update({f"q_val_{i}": st.session_state[f"select_val_{i}"]})
                     )
+                    st.markdown("<div style='height: 6px;'></div>", unsafe_allow_html=True)
 
     with tab_notes:
         st.markdown("<div class='mobile-card'>", unsafe_allow_html=True)
@@ -1089,7 +1091,6 @@ elif choice == "📝 استمارة تقييم جديدة":
                     
                     auto_backup_database_to_drive()
                     
-                    # حفظ تفاصيل الاستمارة لعرض رسالة التأكيد الكبيرة
                     st.session_state.last_saved_eval = {
                         "teacher": teacher_name,
                         "school": school_name,
@@ -1125,7 +1126,6 @@ elif choice == "🔍 سجل الزيارات والتصدير":
 
         st.markdown("---")
         
-        # أزرار تصفية سريعة بحسب نوع المدرسة (الكل / ذكور / إناث)
         c_flt1, c_flt2 = st.columns([2, 2])
         with c_flt1:
             gender_filter = st.radio("تصفية بحسب نوع المدرسة:", ["الكل", "ذكور", "إناث"], horizontal=True)
@@ -1197,16 +1197,19 @@ elif choice == "🔍 سجل الزيارات والتصدير":
                         e_status = st.selectbox("الوضع الوظيفي", ["أصيل", "وكيل", "مكلف"], index=["أصيل", "وكيل", "مكلف"].index(row["job_status"]), key=f"est_{eval_id}")
                         e_exp = st.text_input("الخبرة", value=row["experience"], key=f"eex_{eval_id}")
                     
-                    st.markdown("**تعديل درجات البنود الـ 25:**")
+                    st.markdown("**تعديل درجات البنود الـ 25 (قوائم منسدلة):**")
                     curr_scores = json.loads(row["scores_json"]) if isinstance(row["scores_json"], str) else row["scores_json"]
                     updated_scores = {}
                     
                     for it in CRITERIA:
                         val_now = int(curr_scores.get(str(it['id']), it['max']))
-                        updated_scores[str(it['id'])] = st.number_input(
-                            f"{it['id']}. {it['text']} (من {it['max']})",
-                            min_value=0, max_value=it['max'], value=val_now,
-                            key=f"edit_sc_{eval_id}_{it['id']}"
+                        edit_opts = list(range(it['max'], -1, -1))
+                        updated_scores[str(it['id'])] = st.selectbox(
+                            f"بند {it['id']}. {it['text']} (الدرجة القصوى: {it['max']}):",
+                            options=edit_opts,
+                            index=edit_opts.index(val_now) if val_now in edit_opts else 0,
+                            key=f"edit_sc_select_{eval_id}_{it['id']}",
+                            format_func=lambda x, m=it['max']: f"⭐️ {x} من {m}" if x == m else f"⚪️ {x} من {m}"
                         )
                         
                     e_exc = st.text_area("نقاط التميز", value=row["excellence_points"], key=f"eex2_{eval_id}")
