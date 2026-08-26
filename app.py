@@ -6,7 +6,7 @@ import json
 import io
 import base64
 import requests
-from datetime import date
+from datetime import date, datetime
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 import streamlit.components.v1 as components
@@ -72,7 +72,6 @@ st.markdown("""
         max-width: 100% !important;
     }
     
-    /* كروت ناعمة وعصرية */
     .mobile-card {
         background-color: #ffffff;
         border-radius: 16px;
@@ -82,7 +81,6 @@ st.markdown("""
         box-shadow: 0 4px 14px rgba(0,0,0,0.03);
     }
     
-    /* بطاقة النتيجة الجمالية العائمة */
     .score-banner {
         background: linear-gradient(135deg, #0d5c3a 0%, #15803d 100%);
         color: white;
@@ -93,7 +91,6 @@ st.markdown("""
         margin-bottom: 14px;
     }
     
-    /* تصميم تبويبات فائق الجمال والنعومة */
     .stTabs [data-baseweb="tab-list"] {
         gap: 6px;
         background-color: #e2e8f0;
@@ -104,9 +101,9 @@ st.markdown("""
     
     .stTabs [data-baseweb="tab"] {
         border-radius: 10px;
-        padding: 8px 14px;
+        padding: 8px 12px;
         font-weight: 700;
-        font-size: 13.5px;
+        font-size: 13px;
         color: #475569;
         background-color: transparent;
         border: none !important;
@@ -119,7 +116,6 @@ st.markdown("""
         box-shadow: 0 2px 8px rgba(0,0,0,0.08);
     }
     
-    /* بطاقة البند التقييمي */
     .criterion-item {
         background: #ffffff;
         border: 1px solid #f1f5f9;
@@ -130,12 +126,36 @@ st.markdown("""
         box-shadow: 0 2px 6px rgba(0,0,0,0.02);
     }
     
-    /* أزرار مريحة وجذابة */
     .stButton > button {
         border-radius: 12px !important;
         font-weight: 700 !important;
         padding: 12px 18px !important;
         transition: all 0.2s ease;
+    }
+    
+    .badge-danger {
+        background-color: #fee2e2;
+        color: #991b1b;
+        padding: 3px 8px;
+        border-radius: 6px;
+        font-size: 11.5px;
+        font-weight: 700;
+    }
+    .badge-warning {
+        background-color: #fef3c7;
+        color: #92400e;
+        padding: 3px 8px;
+        border-radius: 6px;
+        font-size: 11.5px;
+        font-weight: 700;
+    }
+    .badge-success {
+        background-color: #dcfce7;
+        color: #166534;
+        padding: 3px 8px;
+        border-radius: 6px;
+        font-size: 11.5px;
+        font-weight: 700;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -615,9 +635,9 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-main_menu_options = ["📝 تقييم جديد", "🔍 سجل الزيارات والتعديل"]
+main_menu_options = ["📝 استمارة تقييم", "🔍 سجل الزيارات والتعديل"]
 if st.session_state.user["role"] == "Admin":
-    main_menu_options.append("⚙️ لوحة الإدارة")
+    main_menu_options = ["📊 لوحة المؤشرات والمتابعة", "📝 استمارة تقييم", "🔍 سجل الزيارات والتعديل", "⚙️ إدارة النظام"]
 
 c_nav, c_out = st.columns([4, 1])
 with c_nav:
@@ -628,9 +648,138 @@ with c_out:
         st.rerun()
 
 # -------------------------------------------------------------
+# 0. لوحة المؤشرات والمتابعة الذكية للأدمن (Admin Dashboard)
+# -------------------------------------------------------------
+if choice == "📊 لوحة المؤشرات والمتابعة" and st.session_state.user["role"] == "Admin":
+    st.markdown("### 📊 لوحة المتابعة الميدانية وخريطة الزيارات")
+    
+    conn = sqlite3.connect("evaluation_system.db")
+    schools_df = pd.read_sql_query("SELECT * FROM schools", conn)
+    evals_df = pd.read_sql_query("SELECT * FROM evaluations", conn)
+    users_df = pd.read_sql_query("SELECT * FROM users WHERE role='Supervisor'", conn)
+    conn.close()
+    
+    # 1. بطاقات الإحصاءات العامة
+    total_schools_count = len(schools_df)
+    visited_schools_set = set(evals_df["school_name"].unique()) if not evals_df.empty else set()
+    visited_count = len(visited_schools_set)
+    unvisited_count = total_schools_count - visited_count
+    total_visits = len(evals_df)
+    
+    m1, m2, m3, m4 = st.columns(4)
+    with m1:
+        st.markdown(f"<div class='mobile-card' style='text-align: center;'><div style='color:#64748b; font-size:12px;'>إجمالي المدارس</div><div style='font-size:24px; font-weight:800; color:#0f172a;'>{total_schools_count}</div></div>", unsafe_allow_html=True)
+    with m2:
+        st.markdown(f"<div class='mobile-card' style='text-align: center;'><div style='color:#166534; font-size:12px;'>مدارس تمّت زيارتها</div><div style='font-size:24px; font-weight:800; color:#166534;'>{visited_count}</div></div>", unsafe_allow_html=True)
+    with m3:
+        st.markdown(f"<div class='mobile-card' style='text-align: center;'><div style='color:#991b1b; font-size:12px;'>مدارس لم تُزَر قط</div><div style='font-size:24px; font-weight:800; color:#991b1b;'>{unvisited_count}</div></div>", unsafe_allow_html=True)
+    with m4:
+        st.markdown(f"<div class='mobile-card' style='text-align: center;'><div style='color:#0d5c3a; font-size:12px;'>إجمالي الزيارات</div><div style='font-size:24px; font-weight:800; color:#0d5c3a;'>{total_visits}</div></div>", unsafe_allow_html=True)
+
+    tab_vis, tab_unvis, tab_monthly, tab_sups = st.tabs([
+        "🏫 المدارس المزارة وزمن الانقطاع",
+        "🚨 مدارس لم تُزَر قط",
+        "📅 الزيارات الشهرية لكل مدرسة",
+        "👥 نشاط الموجهين"
+    ])
+
+    # تبويب 1: المدارس المزارة وزمن الانقطاع
+    with tab_vis:
+        if evals_df.empty:
+            st.info("لا توجد زيارات مسجلة حتى الآن.")
+        else:
+            school_status_data = []
+            today_date = date.today()
+            
+            for _, sc in schools_df.iterrows():
+                s_name = sc['name']
+                sc_evals = evals_df[evals_df['school_name'] == s_name]
+                
+                if not sc_evals.empty:
+                    # تحويل التواريخ لحساب أحدث تاريخ
+                    sc_evals_copy = sc_evals.copy()
+                    sc_evals_copy['v_date'] = pd.to_datetime(sc_evals_copy['visit_date'], errors='coerce')
+                    latest_date = sc_evals_copy['v_date'].max()
+                    
+                    if pd.notnull(latest_date):
+                        days_diff = (pd.Timestamp(today_date) - latest_date).days
+                        latest_str = latest_date.strftime('%Y-%m-%d')
+                    else:
+                        days_diff = 0
+                        latest_str = "غير محدد"
+                        
+                    status_badge = "badge-success"
+                    status_desc = f"منذ {days_diff} يوم"
+                    if days_diff > 30:
+                        status_badge = "badge-warning"
+                        status_desc = f"⚠️ منقطعة منذ {days_diff} يوم"
+                    if days_diff > 60:
+                        status_badge = "badge-danger"
+                        status_desc = f"🚨 انقطاع حرج ({days_diff} يوم)"
+                        
+                    school_status_data.append({
+                        "المدرسة": s_name,
+                        "النوع": sc['gender'],
+                        "الموقع": sc['location'],
+                        "عدد الزيارات": len(sc_evals),
+                        "آخر زيارة": latest_str,
+                        "زمن الانقطاع": status_desc
+                    })
+                    
+            status_df = pd.DataFrame(school_status_data)
+            st.dataframe(status_df, use_container_width=True)
+
+    # تبويب 2: مدارس لم تتم زيارتها قط
+    with tab_unvis:
+        unvisited_schools = schools_df[~schools_df['name'].isin(visited_schools_set)]
+        if unvisited_schools.empty:
+            st.success("🎉 رائع! تم تغطية وزيارة جميع المدارس المسجلة في النظام.")
+        else:
+            st.warning(f"⚠️ يوجد ({len(unvisited_schools)}) مدرسة لم يقم أي موجه بزيارتها حتى الآن:")
+            st.dataframe(unvisited_schools[["name", "gender", "location"]].rename(columns={"name": "اسم المدرسة", "gender": "النوع", "location": "الموقع"}), use_container_width=True)
+
+    # تبويب 3: الزيارات الشهرية لكل مدرسة
+    with tab_monthly:
+        if evals_df.empty:
+            st.info("لا توجد بيانات متاحة.")
+        else:
+            evals_df['v_dt'] = pd.to_datetime(evals_df['visit_date'], errors='coerce')
+            evals_df['الشهر-السنة'] = evals_df['v_dt'].dt.strftime('%m-%Y')
+            
+            # جدول محوري: عدد الزيارات لكل مدرسة في كل شهر
+            pivot_table = pd.pivot_table(
+                evals_df,
+                values='id',
+                index='school_name',
+                columns='الشهر-السنة',
+                aggfunc='count',
+                fill_value=0
+            )
+            pivot_table.index.name = "اسم المدرسة"
+            st.markdown("#### 📊 جدول الزيارات الشهرية لكل مدرسة:")
+            st.dataframe(pivot_table, use_container_width=True)
+
+    # تبويب 4: نشاط الموجهين
+    with tab_sups:
+        st.markdown("#### 👥 عدد الزيارات والتقييمات المنجزة لكل موجه:")
+        if not evals_df.empty:
+            sup_counts = evals_df['supervisor_name'].value_counts().reset_index()
+            sup_counts.columns = ['اسم الموجه', 'عدد الزيارات المنجزة']
+            
+            # دمج مع قائمة الموجهين كاملة لإظهار من لم يزر بعد
+            all_sups = users_df[['full_name', 'specialization']].rename(columns={'full_name': 'اسم الموجه', 'specialization': 'التخصص'})
+            merged_sups = pd.merge(all_sups, sup_counts, on='اسم الموجه', how='left').fillna(0)
+            merged_sups['عدد الزيارات المنجزة'] = merged_sups['عدد الزيارات المنجزة'].astype(int)
+            merged_sups = merged_sups.sort_values(by='عدد الزيارات المنجزة', ascending=False)
+            
+            st.dataframe(merged_sups, use_container_width=True)
+        else:
+            st.info("لا توجد تقييمات منجزة بعد.")
+
+# -------------------------------------------------------------
 # 1. شاشة استمارة تقييم جديدة بنظام التبويبات الجمالية
 # -------------------------------------------------------------
-if choice == "📝 تقييم جديد":
+elif choice == "📝 استمارة تقييم":
     
     # تهيئة درجات البنود
     for item in CRITERIA:
@@ -653,21 +802,22 @@ if choice == "📝 تقييم جديد":
     </div>
     """, unsafe_allow_html=True)
 
-    # التبويبات الرئيسية لاستمارة التقييم
     tab_info, tab_domains, tab_notes = st.tabs(["📌 1. بيانات الزيارة", "📋 2. مجالات التقييم", "✍️ 3. الملاحظات والرفع"])
 
     with tab_info:
         st.markdown("<div class='mobile-card'>", unsafe_allow_html=True)
         conn = sqlite3.connect("evaluation_system.db")
         schools_df = pd.read_sql_query("SELECT name FROM schools", conn)
+        sups_all = pd.read_sql_query("SELECT full_name FROM users WHERE role='Supervisor'", conn)["full_name"].tolist()
         conn.close()
+        
         schools_list = schools_df['name'].tolist() if not schools_df.empty else ["لا توجد مدارس"]
 
         c1, c2 = st.columns(2)
         with c1:
             school_name = st.selectbox("المؤسسة التعليمية الشرعية", schools_list)
             teacher_name = st.text_input("اسم المدرس *", placeholder="أدخل اسم المدرس...")
-            subject = st.text_input("المادة", value=st.session_state.user["specialization"])
+            subject = st.text_input("المادة", value=st.session_state.user["specialization"] if st.session_state.user["role"] != "Admin" else "شريعة")
             grade_level = st.selectbox("الصف", ["السابع", "الثامن", "التاسع", "العاشر", "الحادي عشر", "الثالث الثانوي"])
             section = st.text_input("الشعبة", value="الأولى")
         with c2:
@@ -677,11 +827,16 @@ if choice == "📝 تقييم جديد":
             semester = st.selectbox("الفصل الدراسي", ["الفصل الأول", "الفصل الثاني"])
             committee_no = st.text_input("رقم اللجنة", value="1")
 
+        if st.session_state.user["role"] == "Admin":
+            supervisor_name = st.selectbox("المسؤول العلمي / الموجه المشرف", sups_all if sups_all else [st.session_state.user["name"]])
+        else:
+            supervisor_name = st.session_state.user["name"]
+
         lesson_topic = st.text_input("موضوع الدرس", placeholder="اكتب موضوع الدرس...")
         
         c3, c4 = st.columns(2)
         with c3:
-            specialization = st.text_input("الاختصاص", value=st.session_state.user["specialization"])
+            specialization = st.text_input("الاختصاص", value=subject)
             student_count = st.number_input("عدد الطلاب", min_value=1, value=25)
         with c4:
             job_status = st.selectbox("الوضع الوظيفي", ["أصيل", "وكيل", "مكلف"])
@@ -689,7 +844,6 @@ if choice == "📝 تقييم جديد":
         st.markdown("</div>", unsafe_allow_html=True)
 
     with tab_domains:
-        # تبويبات داخلية للمجالات الخمسة
         domain_tabs = st.tabs(DOMAINS)
         
         for idx, dom in enumerate(DOMAINS):
@@ -748,7 +902,7 @@ if choice == "📝 تقييم جديد":
                 eval_data_dict = {
                     "committee_no": committee_no, "visit_date": str(visit_date), "academic_year": academic_year,
                     "semester": semester, "school_name": school_name, "gender_type": gender_type,
-                    "supervisor_name": st.session_state.user["name"], "teacher_name": teacher_name, "subject": subject,
+                    "supervisor_name": supervisor_name, "teacher_name": teacher_name, "subject": subject,
                     "specialization": specialization, "student_count": student_count, "grade_level": grade_level,
                     "section": section, "lesson_topic": lesson_topic, "job_status": job_status,
                     "experience": experience, "scores_json": json.dumps(final_scores_dict), "total_score": total_live,
@@ -777,7 +931,7 @@ if choice == "📝 تقييم جديد":
                     media_paths, drive_links, status
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''', (
                     committee_no, str(visit_date), academic_year, semester, school_name, gender_type,
-                    st.session_state.user["name"], teacher_name, subject, specialization, student_count,
+                    supervisor_name, teacher_name, subject, specialization, student_count,
                     grade_level, section, lesson_topic, job_status, experience,
                     json.dumps(final_scores_dict), total_live, rating_live, excellence_points, dev_points, suggestions,
                     ",".join(saved_media), ",".join(drive_links), "معتمد"
@@ -817,7 +971,6 @@ elif choice == "🔍 سجل الزيارات والتعديل":
                 
                 rec_dict = row.to_dict()
                 
-                # تبويبات داخل تفاصيل كل استمارة (تعديل / تصدير وطباعة PDF / درايف)
                 sub_tab1, sub_tab2, sub_tab3 = st.tabs(["✏️ تعديل الاستمارة", "🖨️ طباعة وتصدير (PDF/Excel)", "📂 روابط درايف"])
                 
                 with sub_tab1:
@@ -903,7 +1056,7 @@ elif choice == "🔍 سجل الزيارات والتعديل":
 # -------------------------------------------------------------
 # 3. لوحة الإدارة الكاملة (Admin)
 # -------------------------------------------------------------
-elif choice == "⚙️ لوحة الإدارة":
+elif choice == "⚙️ إدارة النظام" and st.session_state.user["role"] == "Admin":
     st.markdown("### ⚙️ إدارة النظام والمستخدمين والمدارس")
     admin_tab1, admin_tab2 = st.tabs(["👥 إدارة الموجهين والحسابات", "🏫 إدارة المدارس"])
     
