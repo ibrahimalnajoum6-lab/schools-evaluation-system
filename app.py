@@ -463,7 +463,7 @@ def get_evaluation_html(eval_data):
     return html
 
 def generate_direct_pdf_bytes(eval_data):
-    """توليد ملف PDF مباشر باستخدام WeasyPrint بدون الحاجة للطباعة عبر المتصفح"""
+    """توليد ملف PDF مباشر باستخدام WeasyPrint"""
     if not WEASYPRINT_AVAILABLE:
         return None
     try:
@@ -612,7 +612,6 @@ def generate_evaluation_excel_form(eval_data):
 def generate_annual_executive_report(evals_df, schools_df, users_df):
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        # 1. ورقة الإحصاءات العامة ونسب التقديرات
         total_schools = len(schools_df)
         visited_schools = len(evals_df['school_name'].unique()) if not evals_df.empty else 0
         coverage_pct = (visited_schools / total_schools * 100) if total_schools > 0 else 0
@@ -622,7 +621,8 @@ def generate_annual_executive_report(evals_df, schools_df, users_df):
         for r in ["ممتاز", "جيد جداً", "جيد", "مقبول", "ضعيف"]:
             cnt = rating_counts.get(r, 0)
             pct = (cnt / len(evals_df) * 100) if len(evals_df) > 0 else 0
-            ratings_data.append({"التقدير": r, "العدد": cnt, "النسبة المئوية": f"{pct:.1f}%"})
+            r_data_item = {"التقدير": r, "العدد": cnt, "النسبة المئوية": f"{pct:.1f}%"}
+            ratings_data.append(r_data_item)
             
         summary_kpi_df = pd.DataFrame([
             {"المؤشر": "إجمالي عدد المدارس الشرعية", "القيمة": total_schools},
@@ -635,7 +635,6 @@ def generate_annual_executive_report(evals_df, schools_df, users_df):
         summary_kpi_df.to_excel(writer, sheet_name='المؤشرات العامة ونسب التقديرات', index=False, startrow=0)
         pd.DataFrame(ratings_data).to_excel(writer, sheet_name='المؤشرات العامة ونسب التقديرات', index=False, startrow=8)
         
-        # 2. ورقة أداء المواد والتخصصات
         if not evals_df.empty:
             subj_perf = evals_df.groupby('subject').agg(
                 عدد_التقييمات=('id', 'count'),
@@ -646,7 +645,6 @@ def generate_annual_executive_report(evals_df, schools_df, users_df):
             subj_perf['متوسط_الدرجة'] = subj_perf['متوسط_الدرجة'].round(1)
             subj_perf.sort_values(by='متوسط_الدرجة', ascending=False).to_excel(writer, sheet_name='مقارنة أداء المواد الدراسية', index=False)
             
-        # 3. ورقة السجل التفصيلي
         if not evals_df.empty:
             evals_df[['teacher_name', 'school_name', 'subject', 'visit_date', 'total_score', 'rating', 'supervisor_name']].to_excel(
                 writer, sheet_name='سجل التقييمات الشامل', index=False
@@ -799,7 +797,6 @@ if choice == "📊 لوحة المؤشرات والمتابعة" and st.session_
             st.warning(f"⚠️ يوجد ({len(unvisited_schools)}) مدرسة لم تتم زيارتها حتى الآن:")
             st.dataframe(unvisited_schools[["name", "gender", "location"]].rename(columns={"name": "المدرسة", "gender": "النوع", "location": "الموقع"}), use_container_width=True)
 
-    # تبويب مقارنة متوسط درجات المواد المختلفة
     with tab_subjects:
         st.markdown("#### 📚 مقارنة متوسط الدرجات ومؤشر الأداء بين المواد:")
         if not evals_df.empty:
@@ -813,8 +810,6 @@ if choice == "📊 لوحة المؤشرات والمتابعة" and st.session_
             subj_stats = subj_stats.sort_values(by='متوسط_الدرجة', ascending=False)
             
             st.dataframe(subj_stats, use_container_width=True)
-            
-            # رسم بياني لمتوسط المواد
             chart_subj = subj_stats[['المادة الدراسية', 'متوسط_الدرجة']].set_index('المادة الدراسية')
             st.bar_chart(chart_subj)
         else:
@@ -879,7 +874,6 @@ elif choice == "📑 التقرير التركيبي السنوي" and st.sessio
             r_data.append({"التقدير": r, "العدد": c_val, "النسبة المئوية": f"{p_val:.1f}%"})
         st.dataframe(pd.DataFrame(r_data), use_container_width=True)
         
-        # زر التصدير الرسمي
         report_excel_bytes = generate_annual_executive_report(evals_df, schools_df, users_df)
         st.download_button(
             label="📊 تحميل التقرير التركيبي السنوي الرسمي (Excel)",
@@ -1036,13 +1030,11 @@ elif choice == "📝 استمارة تقييم":
                 conn.commit()
                 conn.close()
                 
-                # نسخ احتياطي تلقائي للقاعدة إلى درايف بعد الحفظ
                 auto_backup_database_to_drive()
-                
                 st.success(f"✅ تم حفظ الاستمارة ورفع الملفات وتحديث النسخة الاحتياطية بنجاح!")
 
 # -------------------------------------------------------------
-# 3. سجل الزيارات والمعاينة والتعديل وتصدير PDF المباشر
+# 3. سجل الزيارات والمعاينة والتعديل والحذف وتصدير PDF المباشر
 # -------------------------------------------------------------
 elif choice == "🔍 سجل الزيارات والتصدير":
     st.markdown("### 🔍 سجل الزيارات واستمارات التقييم")
@@ -1074,7 +1066,6 @@ elif choice == "🔍 سجل الزيارات والتصدير":
                 
                 sub_tab1, sub_tab2, sub_tab3 = st.tabs(["📥 تحميل الاستمارة (PDF / Excel)", "✏️ تعديل الاستمارة", "📂 روابط درايف"])
                 
-                # تبويب التحميل المباشر للـ PDF والـ Excel
                 with sub_tab1:
                     c_btn_pdf, c_btn_xl = st.columns(2)
                     with c_btn_pdf:
@@ -1139,7 +1130,13 @@ elif choice == "🔍 سجل الزيارات والتصدير":
                     
                     e_files = st.file_uploader("📷 رفع شواهد إضافية", accept_multiple_files=True, key=f"ef_{row['id']}")
 
-                    if st.button("💾 حفظ وتحديث التعديلات", type="primary", use_container_width=True, key=f"btn_edit_{row['id']}"):
+                    col_save_btn, col_del_btn = st.columns(2)
+                    with col_save_btn:
+                        save_clicked = st.button("💾 حفظ وتحديث التعديلات", type="primary", use_container_width=True, key=f"btn_edit_{row['id']}")
+                    with col_del_btn:
+                        delete_clicked = st.button("🗑️ حذف هذه الاستمارة نهائياً", type="secondary", use_container_width=True, key=f"btn_del_eval_{row['id']}")
+
+                    if save_clicked:
                         new_tot = sum(updated_scores.values())
                         new_rat = "ممتاز" if new_tot >= 90 else "جيد جداً" if new_tot >= 80 else "جيد" if new_tot >= 70 else "مقبول" if new_tot >= 50 else "ضعيف"
                         
@@ -1162,6 +1159,16 @@ elif choice == "🔍 سجل الزيارات والتصدير":
                         conn.close()
                         auto_backup_database_to_drive()
                         st.success("✅ تم تحديث الاستمارة والنسخة الاحتياطية بنجاح!")
+                        st.rerun()
+
+                    if delete_clicked:
+                        conn = sqlite3.connect("evaluation_system.db")
+                        c = conn.cursor()
+                        c.execute("DELETE FROM evaluations WHERE id=?", (row["id"],))
+                        conn.commit()
+                        conn.close()
+                        auto_backup_database_to_drive()
+                        st.warning(f"🗑️ تم حذف استمارة المدرس ({row['teacher_name']}) بنجاح.")
                         st.rerun()
 
                 with sub_tab3:
@@ -1260,14 +1267,13 @@ elif choice == "⚙️ إدارة النظام والحماية" and st.session_
     with admin_tab1:
         st.markdown("<div class='mobile-card'>", unsafe_allow_html=True)
         st.markdown("#### 🛡️ أمان البيانات والنسخ الاحتياطي السحابي")
-        st.write("يقوم النظام تلقائياً برفع نسخة احتياطية من قاعدة البيانات `evaluation_system.db` إلى Google Drive عند كل عملية حفظ أو تعديل.")
+        st.write("يقوم النظام تلقائياً برفع نسخة احتياطية من قاعدة البيانات `evaluation_system.db` إلى Google Drive عند كل عملية حفظ أو تعديل أو حذف.")
         
         if st.button("🚀 إنشاء ورفع نسخة احتياطية فورية إلى Google Drive الآن", type="primary", use_container_width=True):
             with st.spinner("جاري أخذ نسخة ورفعها لدرايف..."):
                 auto_backup_database_to_drive()
                 st.success("✅ تم رفع نسخة احتياطية حديثة إلى مجلد (النسخ_الاحتياطية_للنظام) في Google Drive بنجاح!")
                 
-        # إتاحة تحميل ملف القاعدة مباشرة للكمبيوتر
         if os.path.exists("evaluation_system.db"):
             with open("evaluation_system.db", "rb") as f_db:
                 st.download_button(
