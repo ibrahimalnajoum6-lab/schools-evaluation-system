@@ -69,7 +69,7 @@ def auto_backup_database_to_drive():
 # إعداد الصفحة وتصميم التبويبات الجمالية والانسيابية
 # -------------------------------------------------------------
 st.set_page_config(
-    page_title="منظومة تقييم المدارس الشرعية",
+    page_title="استمارة تقييم",
     page_icon="🕌",
     layout="centered",
     initial_sidebar_state="collapsed"
@@ -1058,6 +1058,7 @@ elif choice == "🔍 سجل الزيارات والتصدير":
             ]
 
         for _, row in filtered_df.iterrows():
+            eval_id = row['id']
             with st.expander(f"📄 {row['teacher_name']} — {row['school_name']} ({row['total_score']} / 100 - {row['rating']})"):
                 st.write(f"**المادة:** {row['subject']} | **الصف:** {row['grade_level']} | **التاريخ:** {row['visit_date']}")
                 st.write(f"**المسؤول العلمي / الموجه:** {row['supervisor_name']}")
@@ -1078,7 +1079,7 @@ elif choice == "🔍 سجل الزيارات والتصدير":
                                 mime="application/pdf",
                                 type="primary",
                                 use_container_width=True,
-                                key=f"dl_pdf_{row['id']}"
+                                key=f"dl_pdf_{eval_id}"
                             )
                         else:
                             st.caption("ℹ️ استخدم زر الطباعة أسفله لحفظ PDF عبر المتصفح.")
@@ -1091,7 +1092,7 @@ elif choice == "🔍 سجل الزيارات والتصدير":
                             file_name=f"استمارة_{row['teacher_name']}_{row['visit_date']}.xlsx",
                             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                             use_container_width=True,
-                            key=f"dl_xl_{row['id']}"
+                            key=f"dl_xl_{eval_id}"
                         )
                         
                     st.markdown("---")
@@ -1100,17 +1101,17 @@ elif choice == "🔍 سجل الزيارات والتصدير":
                     components.html(html_preview, height=750, scrolling=True)
 
                 with sub_tab2:
-                    e_tname = st.text_input("اسم المدرس", value=row["teacher_name"], key=f"et_{row['id']}")
-                    e_subj = st.text_input("المادة", value=row["subject"], key=f"es_{row['id']}")
-                    e_topic = st.text_input("موضوع الدرس", value=row["lesson_topic"], key=f"etp_{row['id']}")
+                    e_tname = st.text_input("اسم المدرس", value=row["teacher_name"], key=f"et_{eval_id}")
+                    e_subj = st.text_input("المادة", value=row["subject"], key=f"es_{eval_id}")
+                    e_topic = st.text_input("موضوع الدرس", value=row["lesson_topic"], key=f"etp_{eval_id}")
                     
                     col_e1, col_e2 = st.columns(2)
                     with col_e1:
-                        e_cnt = st.number_input("عدد الطلاب", value=int(row["student_count"]), key=f"ecn_{row['id']}")
-                        e_sec = st.text_input("الشعبة", value=row["section"], key=f"esc_{row['id']}")
+                        e_cnt = st.number_input("عدد الطلاب", value=int(row["student_count"]), key=f"ecn_{eval_id}")
+                        e_sec = st.text_input("الشعبة", value=row["section"], key=f"esc_{eval_id}")
                     with col_e2:
-                        e_status = st.selectbox("الوضع الوظيفي", ["أصيل", "وكيل", "مكلف"], index=["أصيل", "وكيل", "مكلف"].index(row["job_status"]), key=f"est_{row['id']}")
-                        e_exp = st.text_input("الخبرة", value=row["experience"], key=f"eex_{row['id']}")
+                        e_status = st.selectbox("الوضع الوظيفي", ["أصيل", "وكيل", "مكلف"], index=["أصيل", "وكيل", "مكلف"].index(row["job_status"]), key=f"est_{eval_id}")
+                        e_exp = st.text_input("الخبرة", value=row["experience"], key=f"eex_{eval_id}")
                     
                     st.markdown("**تعديل درجات البنود الـ 25:**")
                     curr_scores = json.loads(row["scores_json"]) if isinstance(row["scores_json"], str) else row["scores_json"]
@@ -1121,22 +1122,19 @@ elif choice == "🔍 سجل الزيارات والتصدير":
                         updated_scores[str(it['id'])] = st.number_input(
                             f"{it['id']}. {it['text']} (من {it['max']})",
                             min_value=0, max_value=it['max'], value=val_now,
-                            key=f"edit_sc_{row['id']}_{it['id']}"
+                            key=f"edit_sc_{eval_id}_{it['id']}"
                         )
                         
-                    e_exc = st.text_area("نقاط التميز", value=row["excellence_points"], key=f"eex2_{row['id']}")
-                    e_dev = st.text_area("نقاط التطوير", value=row["dev_points"], key=f"edv_{row['id']}")
-                    e_sug = st.text_area("المقترحات", value=row["suggestions"], key=f"esg_{row['id']}")
+                    e_exc = st.text_area("نقاط التميز", value=row["excellence_points"], key=f"eex2_{eval_id}")
+                    e_dev = st.text_area("نقاط التطوير", value=row["dev_points"], key=f"edv_{eval_id}")
+                    e_sug = st.text_area("المقترحات", value=row["suggestions"], key=f"esg_{eval_id}")
                     
-                    e_files = st.file_uploader("📷 رفع شواهد إضافية", accept_multiple_files=True, key=f"ef_{row['id']}")
+                    e_files = st.file_uploader("📷 رفع شواهد إضافية", accept_multiple_files=True, key=f"ef_{eval_id}")
 
-                    col_save_btn, col_del_btn = st.columns(2)
-                    with col_save_btn:
-                        save_clicked = st.button("💾 حفظ وتحديث التعديلات", type="primary", use_container_width=True, key=f"btn_edit_{row['id']}")
-                    with col_del_btn:
-                        delete_clicked = st.button("🗑️ حذف هذه الاستمارة نهائياً", type="secondary", use_container_width=True, key=f"btn_del_eval_{row['id']}")
-
-                    if save_clicked:
+                    st.markdown("---")
+                    
+                    # زر الحفظ والتحديث
+                    if st.button("💾 حفظ وتحديث التعديلات", type="primary", use_container_width=True, key=f"btn_edit_{eval_id}"):
                         new_tot = sum(updated_scores.values())
                         new_rat = "ممتاز" if new_tot >= 90 else "جيد جداً" if new_tot >= 80 else "جيد" if new_tot >= 70 else "مقبول" if new_tot >= 50 else "ضعيف"
                         
@@ -1153,7 +1151,7 @@ elif choice == "🔍 سجل الزيارات والتصدير":
                             scores_json=?, total_score=?, rating=?, excellence_points=?, dev_points=?, suggestions=?, drive_links=?
                             WHERE id=?''', (
                                 e_tname, e_subj, e_topic, e_cnt, e_sec, e_status, e_exp,
-                                json.dumps(updated_scores), new_tot, new_rat, e_exc, e_dev, e_sug, ",".join(existing_links), row["id"]
+                                json.dumps(updated_scores), new_tot, new_rat, e_exc, e_dev, e_sug, ",".join(existing_links), eval_id
                             ))
                         conn.commit()
                         conn.close()
@@ -1161,15 +1159,33 @@ elif choice == "🔍 سجل الزيارات والتصدير":
                         st.success("✅ تم تحديث الاستمارة والنسخة الاحتياطية بنجاح!")
                         st.rerun()
 
-                    if delete_clicked:
-                        conn = sqlite3.connect("evaluation_system.db")
-                        c = conn.cursor()
-                        c.execute("DELETE FROM evaluations WHERE id=?", (row["id"],))
-                        conn.commit()
-                        conn.close()
-                        auto_backup_database_to_drive()
-                        st.warning(f"🗑️ تم حذف استمارة المدرس ({row['teacher_name']}) بنجاح.")
-                        st.rerun()
+                    # منطقة الحذف المباشرة والمفعلة
+                    confirm_delete_key = f"confirm_del_{eval_id}"
+                    if confirm_delete_key not in st.session_state:
+                        st.session_state[confirm_delete_key] = False
+
+                    if not st.session_state[confirm_delete_key]:
+                        if st.button("🗑️ حذف هذه الاستمارة", type="secondary", use_container_width=True, key=f"ask_del_{eval_id}"):
+                            st.session_state[confirm_delete_key] = True
+                            st.rerun()
+                    else:
+                        st.error(f"⚠️ هل أنت متأكد تماماً من حذف استمارة المدرس ({row['teacher_name']})؟")
+                        c_del_yes, c_del_no = st.columns(2)
+                        with c_del_yes:
+                            if st.button("✔️ نعم، حذف نهائي", type="primary", use_container_width=True, key=f"yes_del_{eval_id}"):
+                                conn = sqlite3.connect("evaluation_system.db")
+                                c = conn.cursor()
+                                c.execute("DELETE FROM evaluations WHERE id=?", (eval_id,))
+                                conn.commit()
+                                conn.close()
+                                auto_backup_database_to_drive()
+                                st.session_state[confirm_delete_key] = False
+                                st.warning(f"🗑️ تم حذف استمارة ({row['teacher_name']}) بنجاح!")
+                                st.rerun()
+                        with c_del_no:
+                            if st.button("✖️ إلغاء الأمر", use_container_width=True, key=f"no_del_{eval_id}"):
+                                st.session_state[confirm_delete_key] = False
+                                st.rerun()
 
                 with sub_tab3:
                     if row.get("drive_links"):
