@@ -71,7 +71,7 @@ def delete_evaluation_by_id(eval_id):
     auto_backup_database_to_drive()
 
 # -------------------------------------------------------------
-# إعداد الصفحة والأنماط البصرية
+# إعداد الصفحة وتكبير الخطوط والأيقونات والأزرار لتسهيل الاستخدام
 # -------------------------------------------------------------
 st.set_page_config(
     page_title="منظومة تقييم المدارس الشرعية",
@@ -315,7 +315,7 @@ def calculate_domain_scores(scores_dict):
     return dom_totals
 
 # -------------------------------------------------------------
-# دالة HTML الرسمية
+# دالة HTML الرسمية (تم تصحيح الأقواس لتفادي خطأ f-string)
 # -------------------------------------------------------------
 def get_evaluation_html(eval_data):
     scores = json.loads(eval_data['scores_json']) if isinstance(eval_data['scores_json'], str) else eval_data['scores_json']
@@ -363,31 +363,31 @@ def get_evaluation_html(eval_data):
         <meta charset="utf-8">
         <title>استمارة تقييم أداء المدرس</title>
         <style>
-            @page {
+            @page {{
                 size: A4;
                 margin: 10mm;
-            }
-            @media print {
-                body { margin: 0; padding: 0; }
-                .no-print { display: none !important; }
-            }
-            body {
+            }}
+            @media print {{
+                body {{ margin: 0; padding: 0; }}
+                .no-print {{ display: none !important; }}
+            }}
+            body {{
                 font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
                 direction: rtl;
                 text-align: right;
                 background-color: #fff;
                 color: #000;
                 padding: 5px;
-            }
-            table { width: 100%; border-collapse: collapse; margin-bottom: 4px; }
-            th, td { border: 1px solid #000; padding: 2.5px 4px; }
-            .bg-gray { background-color: #f2f2f2; }
-            .header-tbl td { border: none; font-weight: bold; }
-            .btn-print {
+            }}
+            table {{ width: 100%; border-collapse: collapse; margin-bottom: 4px; }}
+            th, td {{ border: 1px solid #000; padding: 2.5px 4px; }}
+            .bg-gray {{ background-color: #f2f2f2; }}
+            .header-tbl td {{ border: none; font-weight: bold; }}
+            .btn-print {{
                 background-color: #0d5c3a; color: white; padding: 12px 18px;
                 border: none; border-radius: 8px; cursor: pointer;
                 font-size: 16px; font-weight: bold; margin-bottom: 12px; width: 100%;
-            }
+            }}
         </style>
     </head>
     <body>
@@ -1020,7 +1020,7 @@ elif choice == "📝 استمارة تقييم جديدة":
                         options=scores_options,
                         index=scores_options.index(st.session_state[f"q_val_{it['id']}"]) if st.session_state[f"q_val_{it['id']}"] in scores_options else 0,
                         key=f"select_val_{it['id']}",
-                        format_func=lambda x: f"⭐️ {x} من {it['max']}" if x == it['max'] else f"⚪️ {x} من {it['max']}",
+                        format_func=lambda x, m=it['max']: f"⭐️ {x} من {m}" if x == m else f"⚪️ {x} من {m}",
                         on_change=lambda i=it['id']: st.session_state.update({f"q_val_{i}": st.session_state[f"select_val_{i}"]})
                     )
                     st.markdown("<div style='height: 6px;'></div>", unsafe_allow_html=True)
